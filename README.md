@@ -24,7 +24,14 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   3. Solves an integer linear program (`lib/optimizer.ts`, via
      `javascript-lp-solver`) to pick the optimal 15-man squad within budget,
      formation, and max-per-club constraints — optionally forcing specific
-     players in (`mustInclude`) or out (`mustExclude`).
+     players in (`mustInclude`) or out (`mustExclude`). The objective is
+     swappable (`optimizeBy=value|ownership`): "value" maximizes the score
+     above; "ownership" maximizes `selectedByPercent` instead, building the
+     squad most FPL managers are actually running (the "template" team) —
+     same constraints, same ILP, just a different field being optimized.
+     Each squad option reports `avgOwnership` either way, so you can see
+     how differential or template a squad is regardless of which mode
+     built it.
   4. Repeats with "no-good cuts" to generate N distinct squad options that
      each differ by a minimum number of players.
   5. Solves a second small ILP per squad to pick the best starting XI, then
@@ -57,6 +64,12 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   played), then reuses the same best-XI ILP (`selectBestXi`) to pick the
   highest-scoring valid-formation XI by real points, i.e. FPL's "Team of
   the Week." Returns 422 if the requested gameweek hasn't finished yet.
+- `app/api/transfer-targets/route.ts` — a "who to sign this week" leaderboard:
+  the same scored player pool as the squad builder, sorted by score and
+  optionally filtered by position/max cost, with `costChangeEvent`
+  (whether a player's price rose/fell this gameweek) surfaced as a
+  📈/📉 badge. Not tied to any particular squad — just this week's best
+  value by the numbers.
 - `app/layout.tsx` — sticky header + footer site chrome.
 - `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
   generated favicon and social-preview card (via `next/og`), so links

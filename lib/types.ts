@@ -13,6 +13,9 @@ export interface Player {
   status: string;
   chanceOfPlayingNextRound: number | null;
   selectedByPercent: number;
+  /** Price change (in £0.1m) since the start of the current gameweek event;
+   * positive = risen, negative = fallen. */
+  costChangeEvent: number;
   fixtureDifficulty: number | null;
   score: number;
   /** 0-1: how much of pointsPerGame is real track record vs. a positional
@@ -55,4 +58,5 @@ export interface SquadOption {
   viceCaptainId: number;
   totalCost: number;
   projectedPoints: number;
+  avgOwnership: number;
 }

@@ -22,6 +22,11 @@ export interface TeamOfTheWeekResponse {
   totalPoints: number;
 }
 
+export interface TransferTargetsResponse {
+  targets: Player[];
+  gameweek: GameweekInfo | null;
+}
+
 export interface ErrorResponse {
   error: string;
 }

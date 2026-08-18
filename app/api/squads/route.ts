@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchPlayersAndGameweek, fetchTeamFixtureDifficulty } from "@/lib/fplData";
-import { buildSquadOption, computeScores, selectTopSquads } from "@/lib/optimizer";
+import { buildSquadOption, computeScores, type ObjectiveField, selectTopSquads } from "@/lib/optimizer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +31,8 @@ export async function GET(req: NextRequest) {
   const mustInclude = new Set(
     [...parseIds(params.get("mustInclude"))].filter((id) => !mustExclude.has(id))
   );
+  const objectiveField: ObjectiveField =
+    params.get("optimizeBy") === "ownership" ? "selectedByPercent" : "score";
 
   try {
     const { players, gameweek } = await fetchPlayersAndGameweek();
@@ -45,7 +47,8 @@ export async function GET(req: NextRequest) {
       numOptions,
       minDiff,
       mustInclude,
-      mustExclude
+      mustExclude,
+      objectiveField
     );
     if (squads.length === 0) {
       return NextResponse.json(
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const options = squads.map(buildSquadOption);
+    const options = squads.map((squad) => buildSquadOption(squad, objectiveField));
     return NextResponse.json({ options, budget, requestedOptions: numOptions, gameweek });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

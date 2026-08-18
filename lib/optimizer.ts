@@ -67,10 +67,12 @@ export function computeScores(
 }
 
 interface LpVariable {
-  score: number;
+  objective: number;
   budget: number;
   [key: string]: number;
 }
+
+export type ObjectiveField = "score" | "selectedByPercent";
 
 function solveSquadLp(
   players: Player[],
@@ -78,7 +80,8 @@ function solveSquadLp(
   maxPerTeam: number,
   excludeSquads: Set<number>[],
   minDiff: number,
-  mustIncludeIds: Set<number>
+  mustIncludeIds: Set<number>,
+  objectiveField: ObjectiveField
 ): Player[] | null {
   const teamIds = Array.from(new Set(players.map((p) => p.teamId)));
 
@@ -98,7 +101,12 @@ function solveSquadLp(
   const binaries: Record<string, 1> = {};
   for (const p of players) {
     const key = `p${p.id}`;
-    const v: LpVariable = { score: p.score, budget: p.cost, [`pos_${p.position}`]: 1, [`team_${p.teamId}`]: 1 };
+    const v: LpVariable = {
+      objective: p[objectiveField],
+      budget: p.cost,
+      [`pos_${p.position}`]: 1,
+      [`team_${p.teamId}`]: 1,
+    };
     excludeSquads.forEach((prevIds, i) => {
       if (prevIds.has(p.id)) v[`prev_${i}`] = 1;
     });
@@ -108,7 +116,7 @@ function solveSquadLp(
   }
 
   const model = {
-    optimize: "score",
+    optimize: "objective",
     opType: "max" as const,
     constraints,
     variables,
@@ -133,13 +141,22 @@ export function selectTopSquads(
   numOptions: number,
   minDiff: number,
   mustIncludeIds: Set<number> = new Set(),
-  mustExcludeIds: Set<number> = new Set()
+  mustExcludeIds: Set<number> = new Set(),
+  objectiveField: ObjectiveField = "score"
 ): Player[][] {
   const pool = players.filter((p) => !mustExcludeIds.has(p.id));
   const squads: Player[][] = [];
   const excludeSquads: Set<number>[] = [];
   for (let i = 0; i < numOptions; i++) {
-    const squad = solveSquadLp(pool, budget, maxPerTeam, excludeSquads, minDiff, mustIncludeIds);
+    const squad = solveSquadLp(
+      pool,
+      budget,
+      maxPerTeam,
+      excludeSquads,
+      minDiff,
+      mustIncludeIds,
+      objectiveField
+    );
     if (!squad) break;
     squads.push(squad);
     excludeSquads.push(new Set(squad.map((p) => p.id)));
@@ -147,7 +164,10 @@ export function selectTopSquads(
   return squads;
 }
 
-export function selectBestXi(squad: Player[]): { startingXi: Player[]; bench: Player[] } {
+export function selectBestXi(
+  squad: Player[],
+  objectiveField: ObjectiveField = "score"
+): { startingXi: Player[]; bench: Player[] } {
   const constraints: Record<string, { max?: number; min?: number; equal?: number }> = {
     size: { equal: XI_SIZE },
   };
@@ -160,7 +180,7 @@ export function selectBestXi(squad: Player[]): { startingXi: Player[]; bench: Pl
   const binaries: Record<string, 1> = {};
   for (const p of squad) {
     variables[`p${p.id}`] = {
-      score: p.score,
+      objective: p[objectiveField],
       budget: 0,
       size: 1,
       [`min_${p.position}`]: 1,
@@ -169,7 +189,7 @@ export function selectBestXi(squad: Player[]): { startingXi: Player[]; bench: Pl
     binaries[`p${p.id}`] = 1;
   }
 
-  const model = { optimize: "score", opType: "max" as const, constraints, variables, binaries };
+  const model = { optimize: "objective", opType: "max" as const, constraints, variables, binaries };
   const result = solver.Solve(model) as Record<string, number | boolean>;
 
   const startingIds = new Set(
@@ -196,14 +216,20 @@ function captainScore(p: Player): number {
   return 0.3 * p.pointsPerGame + 0.7 * p.epNext;
 }
 
-export function buildSquadOption(squad: Player[]): SquadOption {
-  const { startingXi, bench } = selectBestXi(squad);
+export function buildSquadOption(
+  squad: Player[],
+  objectiveField: ObjectiveField = "score"
+): SquadOption {
+  const { startingXi, bench } = selectBestXi(squad, objectiveField);
   const ranked = [...startingXi].sort((a, b) => captainScore(b) - captainScore(a));
   const captain = ranked[0];
   const viceCaptain = ranked[1];
 
   const totalCost = squad.reduce((sum, p) => sum + p.cost, 0);
+  // Always reported using the value score, even in ownership/template mode,
+  // so you can see what a "safe" squad costs you in expected points.
   const projectedPoints = startingXi.reduce((sum, p) => sum + p.score, 0) + captain.score;
+  const avgOwnership = squad.reduce((sum, p) => sum + p.selectedByPercent, 0) / squad.length;
 
   return {
     squad: sortByPosition(squad),
@@ -213,5 +239,6 @@ export function buildSquadOption(squad: Player[]): SquadOption {
     viceCaptainId: viceCaptain.id,
     totalCost,
     projectedPoints,
+    avgOwnership,
   };
 }

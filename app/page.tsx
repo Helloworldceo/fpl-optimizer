@@ -13,6 +13,7 @@ import { Guide } from "./components/Guide";
 import { Contact } from "./components/Contact";
 import { StandingsTable } from "./components/StandingsTable";
 import { TeamOfTheWeek } from "./components/TeamOfTheWeek";
+import { TransferTargets } from "./components/TransferTargets";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -67,9 +68,10 @@ function SquadOptionView({ option, budget }: { option: SquadOption; budget: numb
 
   return (
     <div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
         <Metric label="Squad cost" value={`£${option.totalCost.toFixed(1)}m`} sub={`of £${budget.toFixed(1)}m`} />
         <Metric label="Projected XI points" value={option.projectedPoints.toFixed(1)} sub="captain doubled" />
+        <Metric label="Avg. ownership" value={`${option.avgOwnership.toFixed(1)}%`} sub="across squad" />
         <Metric label="Captain" value={captain.webName} />
         <Metric label="Vice-captain" value={viceCaptain.webName} />
       </div>
@@ -128,6 +130,7 @@ const DEFAULT_STATE: ControlsState = {
   fixtureLookahead: 5,
   numOptions: 5,
   minDiff: 3,
+  optimizeBy: "value",
 };
 
 export default function Home() {
@@ -158,6 +161,7 @@ export default function Home() {
         fixtureLookahead: String(controls.fixtureLookahead),
         numOptions: String(controls.numOptions),
         minDiff: String(controls.minDiff),
+        optimizeBy: controls.optimizeBy,
       });
       if (mustIncludeIds.length > 0) params.set("mustInclude", mustIncludeIds.join(","));
       if (mustExcludeIds.length > 0) params.set("mustExclude", mustExcludeIds.join(","));
@@ -183,6 +187,8 @@ export default function Home() {
         <StandingsTable />
         <TeamOfTheWeek />
       </div>
+
+      <TransferTargets />
 
       <Guide />
 

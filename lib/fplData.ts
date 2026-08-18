@@ -21,6 +21,7 @@ interface BootstrapElement {
   status: string;
   chance_of_playing_next_round: number | null;
   selected_by_percent: string;
+  cost_change_event: number;
 }
 
 interface BootstrapTeam {
@@ -90,6 +91,7 @@ function allPlayersFromBootstrap(data: BootstrapResponse): Player[] {
     status: e.status,
     chanceOfPlayingNextRound: e.chance_of_playing_next_round,
     selectedByPercent: parseFloat(e.selected_by_percent) || 0,
+    costChangeEvent: e.cost_change_event ?? 0,
     fixtureDifficulty: null,
     score: 0,
     confidence: 0,
