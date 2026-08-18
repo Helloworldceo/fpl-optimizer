@@ -49,7 +49,18 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
 - `app/page.tsx` — client UI: a welcoming hero + "how it works" guide,
   sliders for budget/club/fixture-lookahead/options, must-include/exclude
   player search pickers, a comparison grid across squad options, and a
-  pitch view of the starting XI.
+  pitch view of the starting XI. Every build (and every tab switch)
+  writes the full settings + selected option into the URL's query string
+  via `history.replaceState` — no page reload, no extra request. Opening
+  a page with those params present (a shared link) restores that exact
+  state and re-runs the build on mount, so a friend clicking your link
+  sees your squad immediately instead of a blank page they'd have to
+  rebuild themselves. A "🔗 Copy shareable link" button copies the
+  current URL. Since it rebuilds from live data rather than storing a
+  snapshot, results can drift slightly if opened well outside the
+  60-600s cache windows above — a deliberate tradeoff for keeping links
+  short and always reflecting current prices/form rather than encoding
+  15 players' worth of state in the URL.
 - `app/api/standings/route.ts` — the real Premier League table, straight
   from FPL's own `teams` data (`played`/`win`/`draw`/`loss`/`points`/
   `position`) — no separate football-data source needed. Populates itself

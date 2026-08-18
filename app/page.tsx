@@ -134,6 +134,92 @@ const DEFAULT_STATE: ControlsState = {
   optimizeBy: "value",
 };
 
+function squadParams(
+  controls: ControlsState,
+  mustIncludeIds: number[],
+  mustExcludeIds: number[]
+): URLSearchParams {
+  const params = new URLSearchParams({
+    budget: String(controls.budget),
+    maxPerTeam: String(controls.maxPerTeam),
+    fixtureLookahead: String(controls.fixtureLookahead),
+    numOptions: String(controls.numOptions),
+    minDiff: String(controls.minDiff),
+    optimizeBy: controls.optimizeBy,
+  });
+  if (mustIncludeIds.length > 0) params.set("mustInclude", mustIncludeIds.join(","));
+  if (mustExcludeIds.length > 0) params.set("mustExclude", mustExcludeIds.join(","));
+  return params;
+}
+
+function readControlsFromUrl(search: URLSearchParams): {
+  controls: ControlsState;
+  mustIncludeIds: number[];
+  mustExcludeIds: number[];
+  option: number;
+} | null {
+  if (!search.has("budget")) return null;
+  const ids = (key: string) =>
+    (search.get(key) ?? "")
+      .split(",")
+      .map((s) => parseInt(s, 10))
+      .filter((n) => Number.isInteger(n));
+
+  return {
+    controls: {
+      budget: parseFloat(search.get("budget") ?? "") || DEFAULT_STATE.budget,
+      maxPerTeam: parseInt(search.get("maxPerTeam") ?? "", 10) || DEFAULT_STATE.maxPerTeam,
+      fixtureLookahead: clampToDefault(search.get("fixtureLookahead"), DEFAULT_STATE.fixtureLookahead),
+      numOptions: parseInt(search.get("numOptions") ?? "", 10) || DEFAULT_STATE.numOptions,
+      minDiff: parseInt(search.get("minDiff") ?? "", 10) || DEFAULT_STATE.minDiff,
+      optimizeBy: search.get("optimizeBy") === "ownership" ? "ownership" : "value",
+    },
+    mustIncludeIds: ids("mustInclude"),
+    mustExcludeIds: ids("mustExclude"),
+    option: parseInt(search.get("option") ?? "0", 10) || 0,
+  };
+}
+
+// fixtureLookahead can legitimately be 0, so it needs its own parse instead
+// of relying on `parseInt(...) || fallback`, which would treat 0 as falsy.
+function clampToDefault(raw: string | null, fallback: number): number {
+  if (raw === null) return fallback;
+  const n = parseInt(raw, 10);
+  return Number.isInteger(n) ? n : fallback;
+}
+
+function updateUrl(
+  controls: ControlsState,
+  mustIncludeIds: number[],
+  mustExcludeIds: number[],
+  option: number
+) {
+  const params = squadParams(controls, mustIncludeIds, mustExcludeIds);
+  params.set("option", String(option));
+  window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+}
+
+function CopyLinkButton() {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          // Clipboard API unavailable — nothing to fall back to here since
+          // the URL bar already reflects the shareable link.
+        }
+      }}
+      className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+    >
+      {copied ? "Link copied!" : "🔗 Copy shareable link"}
+    </button>
+  );
+}
+
 export default function Home() {
   const [controls, setControls] = useState<ControlsState>(DEFAULT_STATE);
   const [loading, setLoading] = useState(false);
@@ -152,32 +238,52 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  async function buildSquads() {
+  // A shared link encodes the build settings + which option was selected in
+  // the URL's query string (see updateUrl below) — restore and rebuild from
+  // it on load so a friend opening the link sees the same squad, not a
+  // blank page they have to rebuild themselves.
+  useEffect(() => {
+    function restoreFromUrl() {
+      const shared = readControlsFromUrl(new URLSearchParams(window.location.search));
+      if (!shared) return;
+      setControls(shared.controls);
+      setMustIncludeIds(shared.mustIncludeIds);
+      setMustExcludeIds(shared.mustExcludeIds);
+      buildSquads(shared.controls, shared.mustIncludeIds, shared.mustExcludeIds, shared.option);
+    }
+    restoreFromUrl();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally runs once on mount
+  }, []);
+
+  async function buildSquads(
+    controlsOverride: ControlsState = controls,
+    mustIncludeOverride: number[] = mustIncludeIds,
+    mustExcludeOverride: number[] = mustExcludeIds,
+    optionOverride?: number
+  ) {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({
-        budget: String(controls.budget),
-        maxPerTeam: String(controls.maxPerTeam),
-        fixtureLookahead: String(controls.fixtureLookahead),
-        numOptions: String(controls.numOptions),
-        minDiff: String(controls.minDiff),
-        optimizeBy: controls.optimizeBy,
-      });
-      if (mustIncludeIds.length > 0) params.set("mustInclude", mustIncludeIds.join(","));
-      if (mustExcludeIds.length > 0) params.set("mustExclude", mustExcludeIds.join(","));
+      const params = squadParams(controlsOverride, mustIncludeOverride, mustExcludeOverride);
       const resp = await fetch(`/api/squads?${params.toString()}`);
       const data = (await resp.json()) as SquadsResponse | ErrorResponse;
       if (!resp.ok || "error" in data) {
         throw new Error("error" in data ? data.error : "Request failed");
       }
       setResult(data);
-      setActiveTab(0);
+      const tab = optionOverride !== undefined && optionOverride < data.options.length ? optionOverride : 0;
+      setActiveTab(tab);
+      updateUrl(controlsOverride, mustIncludeOverride, mustExcludeOverride, tab);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
+  }
+
+  function selectTab(index: number) {
+    setActiveTab(index);
+    updateUrl(controls, mustIncludeIds, mustExcludeIds, index);
   }
 
   return (
@@ -224,28 +330,33 @@ export default function Home() {
 
       {result && (
         <>
-          {result.gameweek && (
-            <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400 mb-4">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span>
-                Live for{" "}
-                <strong className="text-neutral-700 dark:text-neutral-300">
-                  {result.gameweek.name}
-                </strong>
-                {" · Deadline "}
-                {new Date(result.gameweek.deadlineTime).toLocaleString(undefined, {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+            {result.gameweek ? (
+              <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span>
+                  Live for{" "}
+                  <strong className="text-neutral-700 dark:text-neutral-300">
+                    {result.gameweek.name}
+                  </strong>
+                  {" · Deadline "}
+                  {new Date(result.gameweek.deadlineTime).toLocaleString(undefined, {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            ) : (
+              <span />
+            )}
+            <CopyLinkButton />
+          </div>
 
           {result.options.length < result.requestedOptions && (
             <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-4 py-2 mb-4 text-sm">
@@ -254,7 +365,7 @@ export default function Home() {
             </div>
           )}
 
-          <OptionsCompare options={result.options} activeIndex={activeTab} onSelect={setActiveTab} />
+          <OptionsCompare options={result.options} activeIndex={activeTab} onSelect={selectTab} />
 
           <SquadOptionView option={result.options[activeTab]} budget={result.budget} />
         </>
