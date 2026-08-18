@@ -8,8 +8,10 @@ export async function GET() {
     const players = await fetchPlayers();
     const slim = players.map((p) => ({
       id: p.id,
+      code: p.code,
       webName: p.webName,
       teamName: p.teamName,
+      teamCode: p.teamCode,
       position: p.position,
       cost: p.cost,
       selectedByPercent: p.selectedByPercent,

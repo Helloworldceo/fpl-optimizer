@@ -2,14 +2,33 @@
 
 import { useMemo, useState } from "react";
 import type { Position } from "@/lib/types";
+import { playerPhotoUrl } from "@/lib/images";
 
 export interface PlayerOption {
   id: number;
+  code: number;
   webName: string;
   teamName: string;
+  teamCode: number;
   position: Position;
   cost: number;
   selectedByPercent: number;
+}
+
+function SuggestionAvatar({ code }: { code: number }) {
+  const [failed, setFailed] = useState(false);
+  if (!code || failed) {
+    return <span className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700 shrink-0" />;
+  }
+  return (
+    <img
+      src={playerPhotoUrl(code)}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="w-6 h-6 rounded-full object-cover object-top shrink-0 bg-neutral-200 dark:bg-neutral-700"
+    />
+  );
 }
 
 export function PlayerPicker({
@@ -91,14 +110,16 @@ export function PlayerPicker({
               <button
                 key={p.id}
                 onClick={() => add(p.id)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 flex justify-between gap-2"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
               >
-                <span className="truncate">
-                  {p.webName}{" "}
-                  <span className="text-neutral-400 text-xs">({p.position})</span>
-                </span>
-                <span className="text-neutral-500 text-xs whitespace-nowrap">
-                  {p.teamName} · £{p.cost.toFixed(1)}m · {p.selectedByPercent.toFixed(1)}% owned
+                <SuggestionAvatar code={p.code} />
+                <span className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0 sm:gap-2">
+                  <span className="truncate">
+                    {p.webName} <span className="text-neutral-400 text-xs">({p.position})</span>
+                  </span>
+                  <span className="text-neutral-500 text-xs truncate sm:shrink-0">
+                    {p.teamName} · £{p.cost.toFixed(1)}m · {p.selectedByPercent.toFixed(1)}% owned
+                  </span>
                 </span>
               </button>
             ))}

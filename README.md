@@ -98,7 +98,16 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   filtered to available players only. Validates the squad is exactly
   2 GK / 5 DEF / 5 MID / 3 FWD before searching.
 - `app/components/MiniLeagueBanner.tsx` — invite to the project's own FPL
-  mini-league, linking to its auto-join URL.
+  mini-league, linking to its auto-join URL (and showing the join code,
+  `43lgb3`, for anyone who'd rather enter it in the app).
+- `lib/images.ts` — real player photos and team crests from the Premier
+  League's own media CDN (`resources.premierleague.com`), keyed off the
+  numeric `code` field FPL's API already returns per player/team — not a
+  third-party image source. `PlayerChip` (pitch/bench chips), `TeamCrest`
+  (standings, transfer targets, squad detail tables), and the
+  must-include/exclude search dropdown all use these, each with a
+  graceful fallback (initials-on-position-color, or nothing) if a
+  particular image 404s.
 - `app/layout.tsx` — sticky header + footer site chrome.
 - `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
   generated favicon and social-preview card (via `next/og`), so links

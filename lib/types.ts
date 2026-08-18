@@ -2,9 +2,11 @@ export type Position = "GK" | "DEF" | "MID" | "FWD";
 
 export interface Player {
   id: number;
+  code: number;
   webName: string;
   teamId: number;
   teamName: string;
+  teamCode: number;
   position: Position;
   cost: number;
   pointsPerGame: number;
@@ -40,6 +42,7 @@ export interface GameweekSummary {
 
 export interface TeamStanding {
   teamId: number;
+  teamCode: number;
   name: string;
   shortName: string;
   played: number;

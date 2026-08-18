@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { TeamStanding } from "@/lib/types";
 import type { StandingsResponse } from "@/lib/apiTypes";
+import { TeamCrest } from "./TeamCrest";
 
 export function StandingsTable() {
   const [standings, setStandings] = useState<TeamStanding[] | null>(null);
@@ -49,7 +50,12 @@ export function StandingsTable() {
                   <td className="px-3 py-1.5 text-neutral-500 dark:text-neutral-400">
                     {seasonStarted ? s.position || i + 1 : i + 1}
                   </td>
-                  <td className="px-3 py-1.5 font-medium">{s.name}</td>
+                  <td className="px-3 py-1.5 font-medium">
+                    <span className="flex items-center gap-2">
+                      <TeamCrest teamCode={s.teamCode} size={18} />
+                      {s.name}
+                    </span>
+                  </td>
                   <td className="px-3 py-1.5 text-right">{s.played}</td>
                   <td className="px-3 py-1.5 text-right">{s.win}</td>
                   <td className="px-3 py-1.5 text-right">{s.draw}</td>

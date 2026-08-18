@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Player, Position } from "@/lib/types";
 import type { ErrorResponse, TransferTargetsResponse } from "@/lib/apiTypes";
+import { TeamCrest } from "./TeamCrest";
 
 const POSITIONS: { value: Position | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -20,7 +21,10 @@ function TargetRow({ player, rank }: { player: Player; rank: number }) {
         {player.position}
       </span>
       <span className="truncate">{player.webName}</span>
-      <span className="truncate text-neutral-500 dark:text-neutral-400">{player.teamName}</span>
+      <span className="flex items-center gap-1.5 truncate text-neutral-500 dark:text-neutral-400">
+        <TeamCrest teamCode={player.teamCode} size={14} />
+        <span className="truncate">{player.teamName}</span>
+      </span>
       <span>£{player.cost.toFixed(1)}m</span>
       <span className="text-neutral-500 dark:text-neutral-400">score {player.score.toFixed(1)}</span>
       <span className="text-neutral-500 dark:text-neutral-400">
@@ -95,20 +99,22 @@ export function TransferTargets() {
       )}
 
       {targets && !error && (
-        <div>
-          <div className="grid grid-cols-[1.5rem_3rem_1fr_1fr_4rem_5rem_4rem_3rem] items-center gap-2 py-1.5 px-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-black/5 dark:border-white/10">
-            <span>#</span>
-            <span>Pos</span>
-            <span>Name</span>
-            <span>Team</span>
-            <span>Cost</span>
-            <span>Score</span>
-            <span>Owned</span>
-            <span></span>
+        <div className="overflow-x-auto">
+          <div className="min-w-[32rem]">
+            <div className="grid grid-cols-[1.5rem_3rem_1fr_1fr_4rem_5rem_4rem_3rem] items-center gap-2 py-1.5 px-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-black/5 dark:border-white/10">
+              <span>#</span>
+              <span>Pos</span>
+              <span>Name</span>
+              <span>Team</span>
+              <span>Cost</span>
+              <span>Score</span>
+              <span>Owned</span>
+              <span></span>
+            </div>
+            {targets.map((p, i) => (
+              <TargetRow key={p.id} player={p} rank={i + 1} />
+            ))}
           </div>
-          {targets.map((p, i) => (
-            <TargetRow key={p.id} player={p} rank={i + 1} />
-          ))}
         </div>
       )}
     </section>

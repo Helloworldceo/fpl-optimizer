@@ -6,7 +6,12 @@ const FEATURES = [
 
 export function Hero() {
   return (
-    <section className="pt-10 pb-8 sm:pt-14 sm:pb-10 text-center">
+    <section className="relative pt-10 pb-8 sm:pt-14 sm:pb-10 text-center overflow-hidden">
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 -z-10 h-64 opacity-[0.08] dark:opacity-[0.14] pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 60% 100% at 50% 0%, #22c55e, transparent 70%)" }}
+      />
       <div className="text-4xl mb-4">⚽</div>
       <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">FPL Squad Optimizer</h1>
       <p className="text-neutral-500 dark:text-neutral-400 mt-3 max-w-xl mx-auto">

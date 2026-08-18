@@ -16,6 +16,7 @@ import { TeamOfTheWeek } from "./components/TeamOfTheWeek";
 import { TransferTargets } from "./components/TransferTargets";
 import { TransferFinder } from "./components/TransferFinder";
 import { MiniLeagueBanner } from "./components/MiniLeagueBanner";
+import { TeamCrest } from "./components/TeamCrest";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -49,7 +50,10 @@ function PlayerDetailRow({ player, tag }: { player: Player; tag?: "C" | "VC" }) 
           </span>
         )}
       </span>
-      <span className="truncate text-neutral-500 dark:text-neutral-400">{player.teamName}</span>
+      <span className="flex items-center gap-1.5 truncate text-neutral-500 dark:text-neutral-400">
+        <TeamCrest teamCode={player.teamCode} size={14} />
+        <span className="truncate">{player.teamName}</span>
+      </span>
       <span>£{player.cost.toFixed(1)}m</span>
       <span className="text-neutral-500 dark:text-neutral-400" title="Selected by this % of FPL managers">
         {player.selectedByPercent.toFixed(1)}%
@@ -92,34 +96,36 @@ function SquadOptionView({ option, budget }: { option: SquadOption; budget: numb
       </button>
 
       {showDetails && (
-        <div className="mt-3 rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
-          <div className="grid grid-cols-[3rem_1fr_1fr_4rem_4rem_5rem_4rem_2rem] items-center gap-2 py-1.5 px-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-black/5 dark:border-white/10">
-            <span>Pos</span>
-            <span>Name</span>
-            <span>Team</span>
-            <span>Cost</span>
-            <span>Owned</span>
-            <span>Score</span>
-            <span>FDR</span>
-            <span></span>
+        <div className="mt-3 rounded-lg border border-black/10 dark:border-white/10 overflow-hidden overflow-x-auto">
+          <div className="min-w-[34rem]">
+            <div className="grid grid-cols-[3rem_1fr_1fr_4rem_4rem_5rem_4rem_2rem] items-center gap-2 py-1.5 px-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-black/5 dark:border-white/10">
+              <span>Pos</span>
+              <span>Name</span>
+              <span>Team</span>
+              <span>Cost</span>
+              <span>Owned</span>
+              <span>Score</span>
+              <span>FDR</span>
+              <span></span>
+            </div>
+            {POSITION_ORDER.flatMap((pos) =>
+              option.startingXi
+                .filter((p) => p.position === pos)
+                .map((p) => (
+                  <PlayerDetailRow
+                    key={p.id}
+                    player={p}
+                    tag={p.id === option.captainId ? "C" : p.id === option.viceCaptainId ? "VC" : undefined}
+                  />
+                ))
+            )}
+            <div className="bg-neutral-50 dark:bg-neutral-900 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Bench
+            </div>
+            {option.bench.map((p) => (
+              <PlayerDetailRow key={p.id} player={p} />
+            ))}
           </div>
-          {POSITION_ORDER.flatMap((pos) =>
-            option.startingXi
-              .filter((p) => p.position === pos)
-              .map((p) => (
-                <PlayerDetailRow
-                  key={p.id}
-                  player={p}
-                  tag={p.id === option.captainId ? "C" : p.id === option.viceCaptainId ? "VC" : undefined}
-                />
-              ))
-          )}
-          <div className="bg-neutral-50 dark:bg-neutral-900 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            Bench
-          </div>
-          {option.bench.map((p) => (
-            <PlayerDetailRow key={p.id} player={p} />
-          ))}
         </div>
       )}
     </div>

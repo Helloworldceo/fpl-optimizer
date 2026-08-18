@@ -21,6 +21,7 @@ const UNAVAILABLE_STATUSES = new Set(["i", "s", "u", "n"]);
 
 interface BootstrapElement {
   id: number;
+  code: number;
   web_name: string;
   team: number;
   element_type: number;
@@ -37,6 +38,7 @@ interface BootstrapElement {
 
 interface BootstrapTeam {
   id: number;
+  code: number;
   name: string;
   short_name: string;
   played: number;
@@ -88,12 +90,15 @@ async function fetchJson<T>(url: string, revalidateSeconds: number): Promise<T> 
 
 function allPlayersFromBootstrap(data: BootstrapResponse): Player[] {
   const teamNames = new Map(data.teams.map((t) => [t.id, t.name]));
+  const teamCodes = new Map(data.teams.map((t) => [t.id, t.code]));
 
   return data.elements.map((e) => ({
     id: e.id,
+    code: e.code,
     webName: e.web_name,
     teamId: e.team,
     teamName: teamNames.get(e.team) ?? "Unknown",
+    teamCode: teamCodes.get(e.team) ?? 0,
     position: POSITION_MAP[e.element_type],
     cost: e.now_cost / 10,
     pointsPerGame: parseFloat(e.points_per_game) || 0,
@@ -144,6 +149,7 @@ function standingsFromBootstrap(data: BootstrapResponse): TeamStanding[] {
   return [...data.teams]
     .map((t) => ({
       teamId: t.id,
+      teamCode: t.code,
       name: t.name,
       shortName: t.short_name,
       played: t.played,

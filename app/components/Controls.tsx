@@ -68,18 +68,18 @@ export function Controls({
         <span className="text-sm text-neutral-600 dark:text-neutral-300 block mb-1.5">
           Optimize by
         </span>
-        <div className="inline-flex rounded-lg border border-black/15 dark:border-white/15 p-0.5 text-sm">
+        <div className="flex w-full sm:inline-flex sm:w-auto rounded-lg border border-black/15 dark:border-white/15 p-0.5 text-sm">
           {(
             [
               { value: "value" as const, label: "Value", hint: "Best expected points for the budget" },
-              { value: "ownership" as const, label: "Ownership (Template)", hint: "Most-picked squad by FPL managers" },
+              { value: "ownership" as const, label: "Ownership", hint: "Most-picked squad by FPL managers (the template team)" },
             ]
           ).map((opt) => (
             <button
               key={opt.value}
               title={opt.hint}
               onClick={() => onChange({ optimizeBy: opt.value })}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md transition-colors ${
                 state.optimizeBy === opt.value
                   ? "bg-blue-600 text-white"
                   : "text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white"
