@@ -13,6 +13,7 @@ export async function GET() {
       teamName: p.teamName,
       position: p.position,
       cost: p.cost,
+      selectedByPercent: p.selectedByPercent,
     }));
     return NextResponse.json({ players: slim });
   } catch (err) {

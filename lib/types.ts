@@ -20,6 +20,12 @@ export interface Player {
   confidence: number;
 }
 
+export interface GameweekInfo {
+  id: number;
+  name: string;
+  deadlineTime: string;
+}
+
 export interface SquadOption {
   squad: Player[];
   startingXi: Player[];

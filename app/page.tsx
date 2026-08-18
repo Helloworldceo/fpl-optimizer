@@ -28,7 +28,7 @@ function Metric({ label, value, sub }: { label: string; value: string; sub?: str
 
 function PlayerDetailRow({ player, tag }: { player: Player; tag?: "C" | "VC" }) {
   return (
-    <div className="grid grid-cols-[3rem_1fr_1fr_4rem_5rem_4rem_2rem] items-center gap-2 py-1.5 px-2 text-sm border-b border-black/5 dark:border-white/10 last:border-b-0">
+    <div className="grid grid-cols-[3rem_1fr_1fr_4rem_4rem_5rem_4rem_2rem] items-center gap-2 py-1.5 px-2 text-sm border-b border-black/5 dark:border-white/10 last:border-b-0">
       <span className="font-semibold text-xs text-neutral-500 dark:text-neutral-400">
         {player.position}
       </span>
@@ -46,6 +46,9 @@ function PlayerDetailRow({ player, tag }: { player: Player; tag?: "C" | "VC" }) 
       </span>
       <span className="truncate text-neutral-500 dark:text-neutral-400">{player.teamName}</span>
       <span>£{player.cost.toFixed(1)}m</span>
+      <span className="text-neutral-500 dark:text-neutral-400" title="Selected by this % of FPL managers">
+        {player.selectedByPercent.toFixed(1)}%
+      </span>
       <span className="text-neutral-500 dark:text-neutral-400">score {player.score.toFixed(1)}</span>
       <span className="text-neutral-500 dark:text-neutral-400">
         {player.fixtureDifficulty ? `FDR ${player.fixtureDifficulty.toFixed(1)}` : ""}
@@ -79,11 +82,21 @@ function SquadOptionView({ option, budget }: { option: SquadOption; budget: numb
         onClick={() => setShowDetails((v) => !v)}
         className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline"
       >
-        {showDetails ? "Hide" : "Show"} full stats (cost, score, fixture difficulty)
+        {showDetails ? "Hide" : "Show"} full stats (cost, ownership, score, fixture difficulty)
       </button>
 
       {showDetails && (
         <div className="mt-3 rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
+          <div className="grid grid-cols-[3rem_1fr_1fr_4rem_4rem_5rem_4rem_2rem] items-center gap-2 py-1.5 px-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-black/5 dark:border-white/10">
+            <span>Pos</span>
+            <span>Name</span>
+            <span>Team</span>
+            <span>Cost</span>
+            <span>Owned</span>
+            <span>Score</span>
+            <span>FDR</span>
+            <span></span>
+          </div>
           {POSITION_ORDER.flatMap((pos) =>
             option.startingXi
               .filter((p) => p.position === pos)
@@ -194,6 +207,29 @@ export default function Home() {
 
       {result && (
         <>
+          {result.gameweek && (
+            <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400 mb-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span>
+                Live for{" "}
+                <strong className="text-neutral-700 dark:text-neutral-300">
+                  {result.gameweek.name}
+                </strong>
+                {" · Deadline "}
+                {new Date(result.gameweek.deadlineTime).toLocaleString(undefined, {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          )}
+
           {result.options.length < result.requestedOptions && (
             <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-4 py-2 mb-4 text-sm">
               Only {result.options.length} distinct option(s) found — try lowering

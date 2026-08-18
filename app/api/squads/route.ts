@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchPlayers, fetchTeamFixtureDifficulty } from "@/lib/fplData";
+import { fetchPlayersAndGameweek, fetchTeamFixtureDifficulty } from "@/lib/fplData";
 import { buildSquadOption, computeScores, selectTopSquads } from "@/lib/optimizer";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   );
 
   try {
-    const players = await fetchPlayers();
+    const { players, gameweek } = await fetchPlayersAndGameweek();
     const fixtureDifficulty =
       fixtureLookahead > 0 ? await fetchTeamFixtureDifficulty(fixtureLookahead) : null;
     const scoredPlayers = computeScores(players, fixtureDifficulty);
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     }
 
     const options = squads.map(buildSquadOption);
-    return NextResponse.json({ options, budget, requestedOptions: numOptions });
+    return NextResponse.json({ options, budget, requestedOptions: numOptions, gameweek });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 502 });

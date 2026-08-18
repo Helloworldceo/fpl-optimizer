@@ -31,6 +31,14 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
      picks captain/vice-captain by a separate near-term-ceiling score
      (`0.3 × points_per_game + 0.7 × ep_next`) rather than the squad-selection
      score, since captaincy is a single-gameweek, points-doubled bet.
+  6. Returns the current/next gameweek (id, name, deadline) alongside the
+     squads, read fresh from the FPL API on every request — so the UI always
+     reflects whichever gameweek is live when you hit "Build squads," with
+     no separate update step needed as the season progresses.
+  Each player also carries `selectedByPercent` (FPL's live "% of managers
+  who own this player" ownership stat) — shown in the must-include/exclude
+  search results and the per-squad details table, to help judge template
+  vs. differential picks.
 - `app/page.tsx` — client UI: a welcoming hero + "how it works" guide,
   sliders for budget/club/fixture-lookahead/options, must-include/exclude
   player search pickers, a comparison grid across squad options, and a

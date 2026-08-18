@@ -9,6 +9,7 @@ export interface PlayerOption {
   teamName: string;
   position: Position;
   cost: number;
+  selectedByPercent: number;
 }
 
 export function PlayerPicker({
@@ -97,7 +98,7 @@ export function PlayerPicker({
                   <span className="text-neutral-400 text-xs">({p.position})</span>
                 </span>
                 <span className="text-neutral-500 text-xs whitespace-nowrap">
-                  {p.teamName} · £{p.cost.toFixed(1)}m
+                  {p.teamName} · £{p.cost.toFixed(1)}m · {p.selectedByPercent.toFixed(1)}% owned
                 </span>
               </button>
             ))}

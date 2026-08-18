@@ -1,4 +1,4 @@
-import type { Player, Position } from "./types";
+import type { GameweekInfo, Player, Position } from "./types";
 
 const BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 const FIXTURES_URL = "https://fantasy.premierleague.com/api/fixtures/?future=1";
@@ -26,6 +26,21 @@ interface BootstrapTeam {
   name: string;
 }
 
+interface BootstrapEvent {
+  id: number;
+  name: string;
+  deadline_time: string;
+  finished: boolean;
+  is_current: boolean;
+  is_next: boolean;
+}
+
+interface BootstrapResponse {
+  elements: BootstrapElement[];
+  teams: BootstrapTeam[];
+  events: BootstrapEvent[];
+}
+
 interface Fixture {
   event: number | null;
   team_h: number;
@@ -45,10 +60,7 @@ async function fetchJson<T>(url: string): Promise<T> {
   return resp.json() as Promise<T>;
 }
 
-export async function fetchPlayers(): Promise<Player[]> {
-  const data = await fetchJson<{ elements: BootstrapElement[]; teams: BootstrapTeam[] }>(
-    BOOTSTRAP_URL
-  );
+function playersFromBootstrap(data: BootstrapResponse): Player[] {
   const teamNames = new Map(data.teams.map((t) => [t.id, t.name]));
 
   const players: Player[] = data.elements.map((e) => ({
@@ -74,6 +86,28 @@ export async function fetchPlayers(): Promise<Player[]> {
       !UNAVAILABLE_STATUSES.has(p.status) &&
       (p.chanceOfPlayingNextRound === null || p.chanceOfPlayingNextRound >= 50)
   );
+}
+
+function gameweekFromBootstrap(data: BootstrapResponse): GameweekInfo | null {
+  const event =
+    data.events.find((e) => e.is_current) ??
+    data.events.find((e) => e.is_next) ??
+    data.events.find((e) => !e.finished);
+  if (!event) return null;
+  return { id: event.id, name: event.name, deadlineTime: event.deadline_time };
+}
+
+export async function fetchPlayers(): Promise<Player[]> {
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  return playersFromBootstrap(data);
+}
+
+export async function fetchPlayersAndGameweek(): Promise<{
+  players: Player[];
+  gameweek: GameweekInfo | null;
+}> {
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  return { players: playersFromBootstrap(data), gameweek: gameweekFromBootstrap(data) };
 }
 
 export async function fetchTeamFixtureDifficulty(
