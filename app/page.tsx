@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Player, SquadOption } from "@/lib/types";
-import type { ErrorResponse, SquadsResponse } from "@/lib/apiTypes";
+import type { ErrorResponse, GameweeksResponse, SquadsResponse } from "@/lib/apiTypes";
 import { Controls, type ControlsState } from "./components/Controls";
 import { OptionsCompare } from "./components/OptionsCompare";
 import { Pitch } from "./components/Pitch";
@@ -15,6 +15,7 @@ import { StandingsTable } from "./components/StandingsTable";
 import { TeamOfTheWeek } from "./components/TeamOfTheWeek";
 import { TransferTargets } from "./components/TransferTargets";
 import { TransferFinder } from "./components/TransferFinder";
+import { MiniLeagueBanner } from "./components/MiniLeagueBanner";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -128,7 +129,8 @@ function SquadOptionView({ option, budget }: { option: SquadOption; budget: numb
 const DEFAULT_STATE: ControlsState = {
   budget: 100,
   maxPerTeam: 3,
-  fixtureLookahead: 5,
+  fixtureFrom: 1,
+  fixtureTo: 5,
   numOptions: 5,
   minDiff: 3,
   optimizeBy: "value",
@@ -142,7 +144,8 @@ function squadParams(
   const params = new URLSearchParams({
     budget: String(controls.budget),
     maxPerTeam: String(controls.maxPerTeam),
-    fixtureLookahead: String(controls.fixtureLookahead),
+    fixtureFrom: String(controls.fixtureFrom),
+    fixtureTo: String(controls.fixtureTo),
     numOptions: String(controls.numOptions),
     minDiff: String(controls.minDiff),
     optimizeBy: controls.optimizeBy,
@@ -164,12 +167,14 @@ function readControlsFromUrl(search: URLSearchParams): {
       .split(",")
       .map((s) => parseInt(s, 10))
       .filter((n) => Number.isInteger(n));
+  const fixtureFrom = parseInt(search.get("fixtureFrom") ?? "", 10) || DEFAULT_STATE.fixtureFrom;
 
   return {
     controls: {
       budget: parseFloat(search.get("budget") ?? "") || DEFAULT_STATE.budget,
       maxPerTeam: parseInt(search.get("maxPerTeam") ?? "", 10) || DEFAULT_STATE.maxPerTeam,
-      fixtureLookahead: clampToDefault(search.get("fixtureLookahead"), DEFAULT_STATE.fixtureLookahead),
+      fixtureFrom,
+      fixtureTo: parseInt(search.get("fixtureTo") ?? "", 10) || fixtureFrom,
       numOptions: parseInt(search.get("numOptions") ?? "", 10) || DEFAULT_STATE.numOptions,
       minDiff: parseInt(search.get("minDiff") ?? "", 10) || DEFAULT_STATE.minDiff,
       optimizeBy: search.get("optimizeBy") === "ownership" ? "ownership" : "value",
@@ -178,14 +183,6 @@ function readControlsFromUrl(search: URLSearchParams): {
     mustExcludeIds: ids("mustExclude"),
     option: parseInt(search.get("option") ?? "0", 10) || 0,
   };
-}
-
-// fixtureLookahead can legitimately be 0, so it needs its own parse instead
-// of relying on `parseInt(...) || fallback`, which would treat 0 as falsy.
-function clampToDefault(raw: string | null, fallback: number): number {
-  if (raw === null) return fallback;
-  const n = parseInt(raw, 10);
-  return Number.isInteger(n) ? n : fallback;
 }
 
 function updateUrl(
@@ -243,15 +240,29 @@ export default function Home() {
   // it on load so a friend opening the link sees the same squad, not a
   // blank page they have to rebuild themselves.
   useEffect(() => {
-    function restoreFromUrl() {
+    function init() {
       const shared = readControlsFromUrl(new URLSearchParams(window.location.search));
-      if (!shared) return;
-      setControls(shared.controls);
-      setMustIncludeIds(shared.mustIncludeIds);
-      setMustExcludeIds(shared.mustExcludeIds);
-      buildSquads(shared.controls, shared.mustIncludeIds, shared.mustExcludeIds, shared.option);
+      if (shared) {
+        setControls(shared.controls);
+        setMustIncludeIds(shared.mustIncludeIds);
+        setMustExcludeIds(shared.mustExcludeIds);
+        buildSquads(shared.controls, shared.mustIncludeIds, shared.mustExcludeIds, shared.option);
+        return;
+      }
+      // No shared link — default the fixture window to the current gameweek
+      // through +4, rather than the arbitrary GW1-5 placeholder in DEFAULT_STATE.
+      fetch("/api/gameweeks")
+        .then((r) => r.json())
+        .then((data: GameweeksResponse) => {
+          const list = data.gameweeks ?? [];
+          const current =
+            list.find((g) => g.isCurrent) ?? list.find((g) => g.isNext) ?? list.find((g) => !g.finished);
+          if (!current) return;
+          setControls((s) => ({ ...s, fixtureFrom: current.id, fixtureTo: Math.min(current.id + 4, 38) }));
+        })
+        .catch(() => {});
     }
-    restoreFromUrl();
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally runs once on mount
   }, []);
 
@@ -290,14 +301,7 @@ export default function Home() {
     <div className="max-w-4xl mx-auto w-full px-4 pb-8">
       <Hero />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10">
-        <StandingsTable />
-        <TeamOfTheWeek />
-      </div>
-
-      <TransferTargets />
-
-      <TransferFinder playerOptions={playerOptions} />
+      <MiniLeagueBanner />
 
       <Guide />
 
@@ -380,6 +384,15 @@ export default function Home() {
           </p>
         </div>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-10 mb-10">
+        <StandingsTable />
+        <TeamOfTheWeek />
+      </div>
+
+      <TransferTargets />
+
+      <TransferFinder playerOptions={playerOptions} />
 
       <Contact />
     </div>

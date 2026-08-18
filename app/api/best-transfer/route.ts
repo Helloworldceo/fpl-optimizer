@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAllPlayersAndGameweek, fetchTeamFixtureDifficulty, isAvailablePlayer } from "@/lib/fplData";
 import { computeScores, SQUAD_REQUIREMENTS, suggestBestTransfer } from "@/lib/optimizer";
+import { clamp, parseFixtureRange } from "@/lib/apiParams";
 import type { Player, Position } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 const MAX_PER_TEAM = 3;
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
 
 function parseIds(raw: string | null): number[] {
   if (!raw) return [];
@@ -24,7 +21,6 @@ export async function GET(req: NextRequest) {
   const squadIds = parseIds(params.get("squad"));
   const bank = clamp(parseFloat(params.get("bank") ?? "0"), 0, 20);
   const freeTransfers = clamp(parseInt(params.get("freeTransfers") ?? "1", 10), 0, 5);
-  const fixtureLookahead = clamp(parseInt(params.get("fixtureLookahead") ?? "5", 10), 0, 10);
 
   if (squadIds.length !== 15) {
     return NextResponse.json(
@@ -35,8 +31,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const { players, gameweek } = await fetchAllPlayersAndGameweek();
-    const fixtureDifficulty =
-      fixtureLookahead > 0 ? await fetchTeamFixtureDifficulty(fixtureLookahead) : null;
+    const { fixtureFrom, fixtureTo } = parseFixtureRange(params, gameweek?.id ?? null);
+    const fixtureDifficulty = await fetchTeamFixtureDifficulty(fixtureFrom, fixtureTo);
     const scored = computeScores(players, fixtureDifficulty);
 
     const byId = new Map(scored.map((p) => [p.id, p]));

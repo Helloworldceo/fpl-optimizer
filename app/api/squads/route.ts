@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchPlayersAndGameweek, fetchTeamFixtureDifficulty } from "@/lib/fplData";
 import { buildSquadOption, computeScores, type ObjectiveField, selectTopSquads } from "@/lib/optimizer";
+import { clamp, parseFixtureRange } from "@/lib/apiParams";
 
 export const runtime = "nodejs";
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
 
 function parseIds(raw: string | null): Set<number> {
   if (!raw) return new Set();
@@ -22,7 +19,6 @@ export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const budget = clamp(parseFloat(params.get("budget") ?? "100"), 60, 100);
   const maxPerTeam = clamp(parseInt(params.get("maxPerTeam") ?? "3", 10), 1, 3);
-  const fixtureLookahead = clamp(parseInt(params.get("fixtureLookahead") ?? "5", 10), 0, 10);
   const numOptions = clamp(parseInt(params.get("numOptions") ?? "5", 10), 1, 10);
   const minDiff = clamp(parseInt(params.get("minDiff") ?? "3", 10), 1, 10);
 
@@ -35,8 +31,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const { players, gameweek } = await fetchPlayersAndGameweek();
-    const fixtureDifficulty =
-      fixtureLookahead > 0 ? await fetchTeamFixtureDifficulty(fixtureLookahead) : null;
+    const { fixtureFrom, fixtureTo } = parseFixtureRange(params, gameweek?.id ?? null);
+    const fixtureDifficulty = await fetchTeamFixtureDifficulty(fixtureFrom, fixtureTo);
     const scoredPlayers = computeScores(players, fixtureDifficulty);
 
     const squads = selectTopSquads(
@@ -62,7 +58,14 @@ export async function GET(req: NextRequest) {
     }
 
     const options = squads.map((squad) => buildSquadOption(squad, objectiveField));
-    return NextResponse.json({ options, budget, requestedOptions: numOptions, gameweek });
+    return NextResponse.json({
+      options,
+      budget,
+      requestedOptions: numOptions,
+      gameweek,
+      fixtureFrom,
+      fixtureTo,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 502 });

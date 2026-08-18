@@ -42,11 +42,14 @@ export type OptimizeBy = "value" | "ownership";
 export interface ControlsState {
   budget: number;
   maxPerTeam: number;
-  fixtureLookahead: number;
+  fixtureFrom: number;
+  fixtureTo: number;
   numOptions: number;
   minDiff: number;
   optimizeBy: OptimizeBy;
 }
+
+const GAMEWEEKS = Array.from({ length: 38 }, (_, i) => i + 1);
 
 export function Controls({
   state,
@@ -112,14 +115,40 @@ export function Controls({
             ))}
           </select>
         </div>
-        <SliderField
-          label="Fixture lookahead"
-          value={state.fixtureLookahead}
-          min={0}
-          max={10}
-          unit=" GWs"
-          onChange={(v) => onChange({ fixtureLookahead: v })}
-        />
+        <div className="flex flex-col gap-1.5 text-sm">
+          <span className="text-neutral-600 dark:text-neutral-300">Fixture difficulty window</span>
+          <div className="flex items-center gap-1.5">
+            <select
+              value={state.fixtureFrom}
+              onChange={(e) => {
+                const from = parseInt(e.target.value, 10);
+                onChange({ fixtureFrom: from, fixtureTo: Math.max(from, state.fixtureTo) });
+              }}
+              className="rounded border border-black/15 dark:border-white/15 bg-transparent px-2 py-1.5 w-full"
+            >
+              {GAMEWEEKS.map((gw) => (
+                <option key={gw} value={gw}>
+                  GW{gw}
+                </option>
+              ))}
+            </select>
+            <span className="text-neutral-400 shrink-0">to</span>
+            <select
+              value={state.fixtureTo}
+              onChange={(e) => {
+                const to = parseInt(e.target.value, 10);
+                onChange({ fixtureTo: to, fixtureFrom: Math.min(to, state.fixtureFrom) });
+              }}
+              className="rounded border border-black/15 dark:border-white/15 bg-transparent px-2 py-1.5 w-full"
+            >
+              {GAMEWEEKS.map((gw) => (
+                <option key={gw} value={gw}>
+                  GW{gw}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <SliderField
           label="Squad options"
           value={state.numOptions}

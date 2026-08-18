@@ -1,7 +1,9 @@
 import type { GameweekInfo, GameweekSummary, Player, Position, TeamStanding } from "./types";
 
 const BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
-const FIXTURES_URL = "https://fantasy.premierleague.com/api/fixtures/?future=1";
+// No ?future=1 filter: an explicit GW-range picker needs full-season fixture
+// data (including already-played gameweeks), not just what's still ahead.
+const FIXTURES_URL = "https://fantasy.premierleague.com/api/fixtures/";
 const EVENT_LIVE_URL = (eventId: number) =>
   `https://fantasy.premierleague.com/api/event/${eventId}/live/`;
 
@@ -208,16 +210,16 @@ export async function fetchGameweekPerformances(
   return { players, gameweek };
 }
 
+/** Average fixture difficulty per team across an explicit gameweek range
+ * (inclusive), e.g. GW3-GW7 — not just "next N from now". */
 export async function fetchTeamFixtureDifficulty(
-  numGameweeks: number
+  fromGw: number,
+  toGw: number
 ): Promise<Map<number, number>> {
   const fixtures = await fetchJson<Fixture[]>(FIXTURES_URL, FIXTURES_REVALIDATE_SECONDS);
-
-  const events = Array.from(
-    new Set(fixtures.map((f) => f.event).filter((e): e is number => e !== null))
-  ).sort((a, b) => a - b);
-  const cutoff = new Set(events.slice(0, numGameweeks));
-  const relevant = fixtures.filter((f) => f.event !== null && cutoff.has(f.event));
+  const relevant = fixtures.filter(
+    (f) => f.event !== null && f.event >= fromGw && f.event <= toGw
+  );
 
   const byTeam = new Map<number, number[]>();
   for (const f of relevant) {

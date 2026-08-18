@@ -45,7 +45,7 @@ export function TransferTargets() {
     async function run() {
       setError(null);
       try {
-        const params = new URLSearchParams({ limit: "15", fixtureLookahead: "5" });
+        const params = new URLSearchParams({ limit: "15" });
         if (position !== "ALL") params.set("position", position);
         const resp = await fetch(`/api/transfer-targets?${params.toString()}`);
         const json = (await resp.json()) as TransferTargetsResponse | ErrorResponse;

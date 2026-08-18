@@ -14,7 +14,12 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
 
 - `app/api/squads/route.ts` — a serverless API route that, per request:
   1. Fetches live player + fixture data from the FPL API (`lib/fplData.ts`).
-  2. Scores every player: `0.5 × points_per_game + 0.3 × ep_next + 0.2 × fixture_score`.
+  2. Scores every player: `0.5 × points_per_game + 0.3 × ep_next + 0.2 × fixture_score`,
+     where `fixture_score` comes from an explicit gameweek range
+     (`fixtureFrom`/`fixtureTo`, e.g. GW3-GW7 — not just "next N from now")
+     rather than a fixed lookahead count, so you can weigh a specific run of
+     fixtures (a good/bad patch, after an international break, etc.).
+     Defaults to the current gameweek through +4 games if omitted.
      `points_per_game` is shrunk toward its position's average first, in
      proportion to how few minutes the player has (a full season of minutes
      = full trust, 0 minutes = fully the positional average) — so a new
@@ -92,10 +97,20 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   be identified as the one to transfer out) while candidates to buy are
   filtered to available players only. Validates the squad is exactly
   2 GK / 5 DEF / 5 MID / 3 FWD before searching.
+- `app/components/MiniLeagueBanner.tsx` — invite to the project's own FPL
+  mini-league, linking to its auto-join URL.
 - `app/layout.tsx` — sticky header + footer site chrome.
 - `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
   generated favicon and social-preview card (via `next/og`), so links
   shared in chats/group texts render a proper card instead of a bare URL.
+
+## Page layout order
+
+Top to bottom: Hero → mini-league invite → how-it-works guide → the squad
+builder (controls, must-include/exclude, results) → reference/secondary
+tools (Premier League table, Team of the Week, Transfer Targets, Best
+Transfer Finder) → contact. The squad builder is the primary feature, so
+it leads; the reference widgets are supplementary and sit below it.
 
 ## Caching
 

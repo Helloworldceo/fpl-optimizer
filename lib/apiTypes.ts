@@ -12,6 +12,8 @@ export interface SquadsResponse {
   budget: number;
   requestedOptions: number;
   gameweek: GameweekInfo | null;
+  fixtureFrom: number;
+  fixtureTo: number;
 }
 
 export interface StandingsResponse {
@@ -32,6 +34,8 @@ export interface TeamOfTheWeekResponse {
 export interface TransferTargetsResponse {
   targets: Player[];
   gameweek: GameweekInfo | null;
+  fixtureFrom: number;
+  fixtureTo: number;
 }
 
 export interface BestTransferResponse {
