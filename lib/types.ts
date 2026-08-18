@@ -60,3 +60,13 @@ export interface SquadOption {
   projectedPoints: number;
   avgOwnership: number;
 }
+
+export interface TransferSuggestion {
+  transferOut: Player;
+  transferIn: Player;
+  /** Expected score gain per gameweek, before any transfer-cost deduction. */
+  pointGain: number;
+  /** pointGain minus the transfer cost (0 if a free transfer, 4 if not). */
+  netGain: number;
+  transferCost: number;
+}

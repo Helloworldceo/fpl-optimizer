@@ -70,6 +70,17 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   (whether a player's price rose/fell this gameweek) surfaced as a
   📈/📉 badge. Not tied to any particular squad — just this week's best
   value by the numbers.
+- `app/api/best-transfer/route.ts?squad=<15 ids>&bank=<£m>&freeTransfers=<n>` —
+  given a user's actual current 15-man squad, finds the single best
+  like-for-like (same-position) swap: an exhaustive pairwise scan
+  (squad × candidate pool, ~7,500 comparisons — small enough that an ILP
+  would be overkill) maximizing score gain minus transfer cost (0 if
+  `freeTransfers >= 1`, else -4), respecting the outgoing player's sell
+  value + bank and the max-3-per-club rule. Uses the *unfiltered* player
+  list to locate the current squad (so a since-injured player can still
+  be identified as the one to transfer out) while candidates to buy are
+  filtered to available players only. Validates the squad is exactly
+  2 GK / 5 DEF / 5 MID / 3 FWD before searching.
 - `app/layout.tsx` — sticky header + footer site chrome.
 - `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
   generated favicon and social-preview card (via `next/og`), so links

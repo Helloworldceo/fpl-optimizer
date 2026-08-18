@@ -14,6 +14,7 @@ import { Contact } from "./components/Contact";
 import { StandingsTable } from "./components/StandingsTable";
 import { TeamOfTheWeek } from "./components/TeamOfTheWeek";
 import { TransferTargets } from "./components/TransferTargets";
+import { TransferFinder } from "./components/TransferFinder";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -189,6 +190,8 @@ export default function Home() {
       </div>
 
       <TransferTargets />
+
+      <TransferFinder playerOptions={playerOptions} />
 
       <Guide />
 

@@ -1,7 +1,7 @@
 import solver from "javascript-lp-solver";
-import type { Player, Position, SquadOption } from "./types";
+import type { Player, Position, SquadOption, TransferSuggestion } from "./types";
 
-const SQUAD_REQUIREMENTS: Record<Position, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
+export const SQUAD_REQUIREMENTS: Record<Position, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 const XI_MIN: Record<Position, number> = { GK: 1, DEF: 3, MID: 2, FWD: 1 };
 const XI_MAX: Record<Position, number> = { GK: 1, DEF: 5, MID: 5, FWD: 3 };
 const XI_SIZE = 11;
@@ -241,4 +241,47 @@ export function buildSquadOption(
     projectedPoints,
     avgOwnership,
   };
+}
+
+/**
+ * Finds the single best like-for-like swap (same position) for an existing
+ * 15-man squad: the pairing that maximizes score gain minus transfer cost,
+ * respecting budget (outgoing player's value + bank) and the max-per-club
+ * limit. This is a small enough search space (squad size × candidate pool)
+ * that an exhaustive pairwise scan is simpler and just as fast as an ILP.
+ */
+export function suggestBestTransfer(
+  currentSquad: Player[],
+  candidatePool: Player[],
+  bank: number,
+  maxPerTeam: number,
+  transferCost: number
+): TransferSuggestion | null {
+  const squadIds = new Set(currentSquad.map((p) => p.id));
+  const teamCounts = new Map<number, number>();
+  for (const p of currentSquad) teamCounts.set(p.teamId, (teamCounts.get(p.teamId) ?? 0) + 1);
+
+  let best: TransferSuggestion | null = null;
+
+  for (const out of currentSquad) {
+    const budgetForIn = out.cost + bank;
+    const teamCountWithoutOut = (teamCounts.get(out.teamId) ?? 0) - 1;
+
+    for (const inP of candidatePool) {
+      if (squadIds.has(inP.id) || inP.position !== out.position) continue;
+      if (inP.cost > budgetForIn + 1e-9) continue;
+
+      const teamCountIn =
+        inP.teamId === out.teamId ? teamCountWithoutOut + 1 : (teamCounts.get(inP.teamId) ?? 0) + 1;
+      if (teamCountIn > maxPerTeam) continue;
+
+      const pointGain = inP.score - out.score;
+      const netGain = pointGain - transferCost;
+      if (!best || netGain > best.netGain) {
+        best = { transferOut: out, transferIn: inP, pointGain, netGain, transferCost };
+      }
+    }
+  }
+
+  return best;
 }

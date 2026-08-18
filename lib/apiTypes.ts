@@ -1,4 +1,11 @@
-import type { GameweekInfo, GameweekSummary, Player, SquadOption, TeamStanding } from "./types";
+import type {
+  GameweekInfo,
+  GameweekSummary,
+  Player,
+  SquadOption,
+  TeamStanding,
+  TransferSuggestion,
+} from "./types";
 
 export interface SquadsResponse {
   options: SquadOption[];
@@ -25,6 +32,13 @@ export interface TeamOfTheWeekResponse {
 export interface TransferTargetsResponse {
   targets: Player[];
   gameweek: GameweekInfo | null;
+}
+
+export interface BestTransferResponse {
+  suggestion: TransferSuggestion;
+  gameweek: GameweekInfo | null;
+  freeTransfers: number;
+  bank: number;
 }
 
 export interface ErrorResponse {

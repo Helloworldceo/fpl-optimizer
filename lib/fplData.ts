@@ -107,12 +107,15 @@ function allPlayersFromBootstrap(data: BootstrapResponse): Player[] {
   }));
 }
 
-function playersFromBootstrap(data: BootstrapResponse): Player[] {
-  return allPlayersFromBootstrap(data).filter(
-    (p) =>
-      !UNAVAILABLE_STATUSES.has(p.status) &&
-      (p.chanceOfPlayingNextRound === null || p.chanceOfPlayingNextRound >= 50)
+export function isAvailablePlayer(p: Player): boolean {
+  return (
+    !UNAVAILABLE_STATUSES.has(p.status) &&
+    (p.chanceOfPlayingNextRound === null || p.chanceOfPlayingNextRound >= 50)
   );
+}
+
+function playersFromBootstrap(data: BootstrapResponse): Player[] {
+  return allPlayersFromBootstrap(data).filter(isAvailablePlayer);
 }
 
 function gameweekFromBootstrap(data: BootstrapResponse): GameweekInfo | null {
@@ -162,6 +165,17 @@ export async function fetchPlayersAndGameweek(): Promise<{
 }> {
   const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS);
   return { players: playersFromBootstrap(data), gameweek: gameweekFromBootstrap(data) };
+}
+
+/** Unfiltered players (includes currently injured/unavailable ones), so a
+ * user's real current squad can always be located — including whoever
+ * they'd most want to transfer out. */
+export async function fetchAllPlayersAndGameweek(): Promise<{
+  players: Player[];
+  gameweek: GameweekInfo | null;
+}> {
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS);
+  return { players: allPlayersFromBootstrap(data), gameweek: gameweekFromBootstrap(data) };
 }
 
 export async function fetchStandings(): Promise<TeamStanding[]> {
