@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const budget = clamp(parseFloat(params.get("budget") ?? "100"), 60, 100);
   const maxPerTeam = clamp(parseInt(params.get("maxPerTeam") ?? "3", 10), 1, 3);
   const fixtureLookahead = clamp(parseInt(params.get("fixtureLookahead") ?? "5", 10), 0, 10);
-  const numOptions = clamp(parseInt(params.get("numOptions") ?? "5", 10), 1, 8);
+  const numOptions = clamp(parseInt(params.get("numOptions") ?? "5", 10), 1, 10);
   const minDiff = clamp(parseInt(params.get("minDiff") ?? "3", 10), 1, 10);
 
   try {
