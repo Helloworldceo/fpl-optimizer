@@ -10,6 +10,7 @@ import { BenchStrip } from "./components/BenchStrip";
 import { PlayerPicker, type PlayerOption } from "./components/PlayerPicker";
 import { Hero } from "./components/Hero";
 import { Guide } from "./components/Guide";
+import { Contact } from "./components/Contact";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -215,6 +216,8 @@ export default function Home() {
           </p>
         </div>
       )}
+
+      <Contact />
     </div>
   );
 }
