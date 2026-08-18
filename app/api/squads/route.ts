@@ -3,7 +3,6 @@ import { fetchPlayersAndGameweek, fetchTeamFixtureDifficulty } from "@/lib/fplDa
 import { buildSquadOption, computeScores, type ObjectiveField, selectTopSquads } from "@/lib/optimizer";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);

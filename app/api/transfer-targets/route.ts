@@ -4,7 +4,6 @@ import { computeScores } from "@/lib/optimizer";
 import type { Position } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const VALID_POSITIONS = new Set<Position>(["GK", "DEF", "MID", "FWD"]);
 

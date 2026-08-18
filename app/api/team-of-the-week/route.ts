@@ -3,7 +3,6 @@ import { fetchGameweekPerformances } from "@/lib/fplData";
 import { selectBestXi } from "@/lib/optimizer";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const eventId = parseInt(req.nextUrl.searchParams.get("event") ?? "", 10);

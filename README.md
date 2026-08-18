@@ -75,6 +75,22 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   generated favicon and social-preview card (via `next/og`), so links
   shared in chats/group texts render a proper card instead of a bare URL.
 
+## Caching
+
+`lib/fplData.ts` fetches FPL's endpoints with Next's Data Cache
+(`next: { revalidate }`) instead of `no-store`: 60s for `bootstrap-static`
+(players/teams/gameweeks), 300s for fixtures, 600s for a finished
+gameweek's live stats. The cache is shared across *all* routes that hit
+the same URL — building a squad, checking standings, and browsing
+transfer targets within the same window only fetches `bootstrap-static`
+from FPL once, not once per route. Verified: first request ~2s (real
+fetch), repeat requests in the same window ~10-25ms. None of the route
+handlers set `dynamic = "force-dynamic"` (that flag forces every `fetch`
+inside to `no-store`, which would silently defeat this) — query-param-driven
+routes like `/api/squads` still execute fresh (and re-solve the ILP) on
+every request regardless, since reading `searchParams` already makes a
+route dynamic.
+
 ## Score model limitations
 
 The scoring is a simple weighted blend of publicly available season/model

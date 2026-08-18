@@ -5,6 +5,15 @@ const FIXTURES_URL = "https://fantasy.premierleague.com/api/fixtures/?future=1";
 const EVENT_LIVE_URL = (eventId: number) =>
   `https://fantasy.premierleague.com/api/event/${eventId}/live/`;
 
+// How long Next's Data Cache may serve a cached copy of each endpoint before
+// re-fetching from FPL. Shares one fetch across concurrent/nearby requests
+// instead of every route hitting FPL's API on every request.
+const BOOTSTRAP_REVALIDATE_SECONDS = 60;
+const FIXTURES_REVALIDATE_SECONDS = 300;
+// A finished gameweek's live stats are effectively immutable; an in-progress
+// one changes often but callers only ever request finished gameweeks here.
+const EVENT_LIVE_REVALIDATE_SECONDS = 600;
+
 const POSITION_MAP: Record<number, Position> = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
 const UNAVAILABLE_STATUSES = new Set(["i", "s", "u", "n"]);
 
@@ -64,10 +73,10 @@ interface EventLiveElement {
   stats?: { total_points?: number };
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(url: string, revalidateSeconds: number): Promise<T> {
   const resp = await fetch(url, {
     headers: { "User-Agent": "fpl-optimizer-web" },
-    cache: "no-store",
+    next: { revalidate: revalidateSeconds },
   });
   if (!resp.ok) {
     throw new Error(`FPL API request failed (${resp.status}): ${url}`);
@@ -143,7 +152,7 @@ function standingsFromBootstrap(data: BootstrapResponse): TeamStanding[] {
 }
 
 export async function fetchPlayers(): Promise<Player[]> {
-  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS);
   return playersFromBootstrap(data);
 }
 
@@ -151,17 +160,17 @@ export async function fetchPlayersAndGameweek(): Promise<{
   players: Player[];
   gameweek: GameweekInfo | null;
 }> {
-  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS);
   return { players: playersFromBootstrap(data), gameweek: gameweekFromBootstrap(data) };
 }
 
 export async function fetchStandings(): Promise<TeamStanding[]> {
-  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS);
   return standingsFromBootstrap(data);
 }
 
 export async function fetchGameweeks(): Promise<GameweekSummary[]> {
-  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS);
   return gameweeksFromBootstrap(data);
 }
 
@@ -172,8 +181,8 @@ export async function fetchGameweekPerformances(
   eventId: number
 ): Promise<{ players: Player[]; gameweek: GameweekSummary | null }> {
   const [bootstrap, live] = await Promise.all([
-    fetchJson<BootstrapResponse>(BOOTSTRAP_URL),
-    fetchJson<{ elements: EventLiveElement[] }>(EVENT_LIVE_URL(eventId)),
+    fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS),
+    fetchJson<{ elements: EventLiveElement[] }>(EVENT_LIVE_URL(eventId), EVENT_LIVE_REVALIDATE_SECONDS),
   ]);
 
   const pointsById = new Map(live.elements.map((e) => [e.id, e.stats?.total_points ?? 0]));
@@ -188,7 +197,7 @@ export async function fetchGameweekPerformances(
 export async function fetchTeamFixtureDifficulty(
   numGameweeks: number
 ): Promise<Map<number, number>> {
-  const fixtures = await fetchJson<Fixture[]>(FIXTURES_URL);
+  const fixtures = await fetchJson<Fixture[]>(FIXTURES_URL, FIXTURES_REVALIDATE_SECONDS);
 
   const events = Array.from(
     new Set(fixtures.map((f) => f.event).filter((e): e is number => e !== null))
