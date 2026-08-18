@@ -31,9 +31,14 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
      picks captain/vice-captain by a separate near-term-ceiling score
      (`0.3 × points_per_game + 0.7 × ep_next`) rather than the squad-selection
      score, since captaincy is a single-gameweek, points-doubled bet.
-- `app/page.tsx` — client UI: sliders for budget/club/fixture-lookahead/
-  options, must-include/exclude player search pickers, a comparison grid
-  across squad options, and a pitch view of the starting XI.
+- `app/page.tsx` — client UI: a welcoming hero + "how it works" guide,
+  sliders for budget/club/fixture-lookahead/options, must-include/exclude
+  player search pickers, a comparison grid across squad options, and a
+  pitch view of the starting XI.
+- `app/layout.tsx` — sticky header + footer site chrome.
+- `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
+  generated favicon and social-preview card (via `next/og`), so links
+  shared in chats/group texts render a proper card instead of a bare URL.
 
 ## Score model limitations
 
@@ -55,6 +60,10 @@ Open http://localhost:3000.
 ## Deploying to Vercel
 
 No environment variables or secrets are required — the FPL API is public.
+Optionally set `NEXT_PUBLIC_SITE_URL` to your deployed domain (e.g.
+`https://fpl-optimizer.vercel.app`) so the social-preview card resolves an
+absolute image URL; without it, sharing still works but some link
+unfurlers may not render the image.
 
 **Option A — Vercel CLI:**
 ```bash

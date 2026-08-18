@@ -8,6 +8,8 @@ import { OptionsCompare } from "./components/OptionsCompare";
 import { Pitch } from "./components/Pitch";
 import { BenchStrip } from "./components/BenchStrip";
 import { PlayerPicker, type PlayerOption } from "./components/PlayerPicker";
+import { Hero } from "./components/Hero";
+import { Guide } from "./components/Guide";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -158,14 +160,9 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 py-8 flex-1">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold">⚽ FPL Squad Optimizer</h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-          Live data from the official Fantasy Premier League API. Score blends
-          points-per-game, ep_next, and upcoming fixture difficulty (FDR).
-        </p>
-      </header>
+    <div className="max-w-4xl mx-auto w-full px-4 pb-8">
+      <Hero />
+      <Guide />
 
       <Controls state={controls} onChange={(patch) => setControls((s) => ({ ...s, ...patch }))} onSubmit={buildSquads} loading={loading} />
 
@@ -207,6 +204,16 @@ export default function Home() {
 
           <SquadOptionView option={result.options[activeTab]} budget={result.budget} />
         </>
+      )}
+
+      {!result && !error && !loading && (
+        <div className="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-10 text-center">
+          <div className="text-3xl mb-2">⚽</div>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Set your constraints above and hit <strong>Build squads</strong> to see your
+            optimized options.
+          </p>
+        </div>
       )}
     </div>
   );
