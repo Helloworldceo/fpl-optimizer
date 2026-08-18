@@ -305,7 +305,7 @@ export default function Home() {
 
       <Guide />
 
-      <Controls state={controls} onChange={(patch) => setControls((s) => ({ ...s, ...patch }))} onSubmit={buildSquads} loading={loading} />
+      <Controls state={controls} onChange={(patch) => setControls((s) => ({ ...s, ...patch }))} onSubmit={() => buildSquads()} loading={loading} />
 
       <div className="rounded-xl border border-black/10 dark:border-white/10 p-5 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <PlayerPicker
