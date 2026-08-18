@@ -15,6 +15,9 @@ export interface Player {
   selectedByPercent: number;
   fixtureDifficulty: number | null;
   score: number;
+  /** 0-1: how much of pointsPerGame is real track record vs. a positional
+   * average filled in for low-minutes players (new signings, fringe players). */
+  confidence: number;
 }
 
 export interface SquadOption {

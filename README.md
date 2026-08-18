@@ -15,15 +15,33 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
 - `app/api/squads/route.ts` — a serverless API route that, per request:
   1. Fetches live player + fixture data from the FPL API (`lib/fplData.ts`).
   2. Scores every player: `0.5 × points_per_game + 0.3 × ep_next + 0.2 × fixture_score`.
+     `points_per_game` is shrunk toward its position's average first, in
+     proportion to how few minutes the player has (a full season of minutes
+     = full trust, 0 minutes = fully the positional average) — so a new
+     signing or fringe player with an optimistic `ep_next` and no track
+     record doesn't get treated as equally reliable as a proven starter.
+     Each player's `confidence` (0–1) is exposed in the API/UI.
   3. Solves an integer linear program (`lib/optimizer.ts`, via
      `javascript-lp-solver`) to pick the optimal 15-man squad within budget,
-     formation, and max-per-club constraints.
+     formation, and max-per-club constraints — optionally forcing specific
+     players in (`mustInclude`) or out (`mustExclude`).
   4. Repeats with "no-good cuts" to generate N distinct squad options that
      each differ by a minimum number of players.
-  5. Solves a second small ILP per squad to pick the best starting XI +
-     captain/vice-captain.
-- `app/page.tsx` — client UI: budget/club/fixture-lookahead controls, tabs
-  for each squad option, player tables with FDR and captain/vice markers.
+  5. Solves a second small ILP per squad to pick the best starting XI, then
+     picks captain/vice-captain by a separate near-term-ceiling score
+     (`0.3 × points_per_game + 0.7 × ep_next`) rather than the squad-selection
+     score, since captaincy is a single-gameweek, points-doubled bet.
+- `app/page.tsx` — client UI: sliders for budget/club/fixture-lookahead/
+  options, must-include/exclude player search pickers, a comparison grid
+  across squad options, and a pitch view of the starting XI.
+
+## Score model limitations
+
+The scoring is a simple weighted blend of publicly available season/model
+stats — not a trained predictive model. It doesn't yet know about ownership
+(differentials vs. template), price-change timing, or a variance-aware
+"ceiling" ranking outside of captaincy. Treat it as a strong, fast starting
+point to sanity-check and adjust from — not an autopilot.
 
 ## Local development
 

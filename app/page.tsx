@@ -32,6 +32,14 @@ function PlayerDetailRow({ player, tag }: { player: Player; tag?: "C" | "VC" }) 
       <span className="truncate">
         {player.webName}
         {tag && <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">({tag})</span>}
+        {player.confidence < 0.2 && (
+          <span
+            title="Limited track record: under ~5 games' worth of minutes, score leans on a positional average rather than proven form"
+            className="ml-1 text-xs text-amber-600 dark:text-amber-400 cursor-help"
+          >
+            ⚠︎
+          </span>
+        )}
       </span>
       <span className="truncate text-neutral-500 dark:text-neutral-400">{player.teamName}</span>
       <span>£{player.cost.toFixed(1)}m</span>

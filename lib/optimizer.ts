@@ -7,20 +7,61 @@ const XI_MAX: Record<Position, number> = { GK: 1, DEF: 5, MID: 5, FWD: 3 };
 const XI_SIZE = 11;
 const POSITION_ORDER: Position[] = ["GK", "DEF", "MID", "FWD"];
 
+// A player with a full season of minutes is treated as fully "proven";
+// below that, pointsPerGame is shrunk toward their position's average
+// (among proven players) so a handful of good/bad minutes — or a brand
+// new signing with no Premier League track record — can't masquerade as
+// a reliable stat. Avoids overrating small-sample outliers in either
+// direction.
+const FULL_SEASON_MINUTES = 2500;
+const MIN_MINUTES_FOR_BASELINE = 450;
+const DEFAULT_BASELINE_PPG = 2.0;
+
+function computePositionBaselines(players: Player[]): Record<Position, number> {
+  const totals: Record<Position, { sum: number; count: number }> = {
+    GK: { sum: 0, count: 0 },
+    DEF: { sum: 0, count: 0 },
+    MID: { sum: 0, count: 0 },
+    FWD: { sum: 0, count: 0 },
+  };
+  for (const p of players) {
+    if (p.minutes >= MIN_MINUTES_FOR_BASELINE) {
+      totals[p.position].sum += p.pointsPerGame;
+      totals[p.position].count += 1;
+    }
+  }
+  const baselines = {} as Record<Position, number>;
+  for (const pos of POSITION_ORDER) {
+    baselines[pos] = totals[pos].count > 0 ? totals[pos].sum / totals[pos].count : DEFAULT_BASELINE_PPG;
+  }
+  return baselines;
+}
+
 export function computeScores(
   players: Player[],
   fixtureDifficulty: Map<number, number> | null
 ): Player[] {
+  const baselines = computePositionBaselines(players);
+
   return players.map((p) => {
+    const confidence = Math.min(1, p.minutes / FULL_SEASON_MINUTES);
+    const adjustedPpg = confidence * p.pointsPerGame + (1 - confidence) * baselines[p.position];
+
     if (!fixtureDifficulty) {
-      return { ...p, fixtureDifficulty: null, score: 0.6 * p.pointsPerGame + 0.4 * p.epNext };
+      return {
+        ...p,
+        fixtureDifficulty: null,
+        confidence,
+        score: 0.6 * adjustedPpg + 0.4 * p.epNext,
+      };
     }
     const avgDiff = fixtureDifficulty.get(p.teamId) ?? 3.0;
     const fixtureScore = (5 - avgDiff) * 2.5; // 1 (easiest) -> 10, 5 (hardest) -> 0
     return {
       ...p,
       fixtureDifficulty: avgDiff,
-      score: 0.5 * p.pointsPerGame + 0.3 * p.epNext + 0.2 * fixtureScore,
+      confidence,
+      score: 0.5 * adjustedPpg + 0.3 * p.epNext + 0.2 * fixtureScore,
     };
   });
 }
@@ -147,9 +188,17 @@ function sortByPosition(players: Player[]): Player[] {
   return [...players].sort((a, b) => order[a.position] - order[b.position]);
 }
 
+// Captaincy is a single-gameweek bet where points get doubled, so it should
+// be ranked by near-term ceiling rather than the same season-long blended
+// score used to pick the squad. ep_next (this gameweek's model projection)
+// is weighted heavily; pointsPerGame only breaks ties/damps outliers.
+function captainScore(p: Player): number {
+  return 0.3 * p.pointsPerGame + 0.7 * p.epNext;
+}
+
 export function buildSquadOption(squad: Player[]): SquadOption {
   const { startingXi, bench } = selectBestXi(squad);
-  const ranked = [...startingXi].sort((a, b) => b.score - a.score);
+  const ranked = [...startingXi].sort((a, b) => captainScore(b) - captainScore(a));
   const captain = ranked[0];
   const viceCaptain = ranked[1];
 

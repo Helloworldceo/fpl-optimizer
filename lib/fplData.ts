@@ -66,6 +66,7 @@ export async function fetchPlayers(): Promise<Player[]> {
     selectedByPercent: parseFloat(e.selected_by_percent) || 0,
     fixtureDifficulty: null,
     score: 0,
+    confidence: 0,
   }));
 
   return players.filter(
