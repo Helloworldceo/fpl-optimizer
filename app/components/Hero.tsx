@@ -1,3 +1,5 @@
+import { PlayerBanner } from "./PlayerBanner";
+
 const FEATURES = [
   { icon: "📡", label: "Live FPL data" },
   { icon: "🧮", label: "Optimized by ILP, not guesswork" },
@@ -29,6 +31,7 @@ export function Hero() {
           </span>
         ))}
       </div>
+      <PlayerBanner />
     </section>
   );
 }

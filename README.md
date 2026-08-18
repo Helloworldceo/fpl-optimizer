@@ -108,6 +108,10 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   must-include/exclude search dropdown all use these, each with a
   graceful fallback (initials-on-position-color, or nothing) if a
   particular image 404s.
+- `app/components/PlayerBanner.tsx` — a decorative row of current star
+  players (Haaland, Saka, B.Fernandes, Palmer, Isak, Watkins) under the
+  hero, using the same photo CDN. Static/hardcoded list, not tied to
+  live squad data — just visual identity.
 - `app/layout.tsx` — sticky header + footer site chrome.
 - `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
   generated favicon and social-preview card (via `next/og`), so links
