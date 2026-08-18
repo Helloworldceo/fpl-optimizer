@@ -43,6 +43,20 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   sliders for budget/club/fixture-lookahead/options, must-include/exclude
   player search pickers, a comparison grid across squad options, and a
   pitch view of the starting XI.
+- `app/api/standings/route.ts` — the real Premier League table, straight
+  from FPL's own `teams` data (`played`/`win`/`draw`/`loss`/`points`/
+  `position`) — no separate football-data source needed. Populates itself
+  automatically as matches are played; shows all-zero rows before a
+  season/gameweek has kicked off.
+- `app/api/gameweeks/route.ts` — the full list of gameweeks with their
+  `finished` status, used to drive the Team of the Week gameweek picker.
+- `app/api/team-of-the-week/route.ts?event=<id>` — for a *finished*
+  gameweek, fetches that event's live actual points
+  (`event/{id}/live/`) for every player (unfiltered by current
+  availability — a since-injured player still shows up in a week they
+  played), then reuses the same best-XI ILP (`selectBestXi`) to pick the
+  highest-scoring valid-formation XI by real points, i.e. FPL's "Team of
+  the Week." Returns 422 if the requested gameweek hasn't finished yet.
 - `app/layout.tsx` — sticky header + footer site chrome.
 - `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
   generated favicon and social-preview card (via `next/og`), so links

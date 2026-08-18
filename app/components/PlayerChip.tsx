@@ -11,10 +11,13 @@ export function PlayerChip({
   player,
   tag,
   variant = "pitch",
+  subtitle,
 }: {
   player: Player;
   tag?: "C" | "VC";
   variant?: "pitch" | "bench";
+  /** Overrides the default "£cost m" line, e.g. to show gameweek points instead. */
+  subtitle?: string;
 }) {
   const initials = player.webName.slice(0, 2).toUpperCase();
 
@@ -50,7 +53,7 @@ export function PlayerChip({
           variant === "pitch" ? "text-white/85" : "text-neutral-500 dark:text-neutral-400"
         }`}
       >
-        £{player.cost.toFixed(1)}m
+        {subtitle ?? `£${player.cost.toFixed(1)}m`}
       </div>
     </div>
   );

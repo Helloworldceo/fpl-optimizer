@@ -7,10 +7,12 @@ export function Pitch({
   startingXi,
   captainId,
   viceCaptainId,
+  subtitleFor,
 }: {
   startingXi: Player[];
   captainId: number;
   viceCaptainId: number;
+  subtitleFor?: (player: Player) => string;
 }) {
   return (
     <div
@@ -35,6 +37,7 @@ export function Pitch({
                   player={p}
                   tag={p.id === captainId ? "C" : p.id === viceCaptainId ? "VC" : undefined}
                   variant="pitch"
+                  subtitle={subtitleFor?.(p)}
                 />
               ))}
           </div>

@@ -26,6 +26,27 @@ export interface GameweekInfo {
   deadlineTime: string;
 }
 
+export interface GameweekSummary {
+  id: number;
+  name: string;
+  deadlineTime: string;
+  finished: boolean;
+  isCurrent: boolean;
+  isNext: boolean;
+}
+
+export interface TeamStanding {
+  teamId: number;
+  name: string;
+  shortName: string;
+  played: number;
+  win: number;
+  draw: number;
+  loss: number;
+  points: number;
+  position: number;
+}
+
 export interface SquadOption {
   squad: Player[];
   startingXi: Player[];

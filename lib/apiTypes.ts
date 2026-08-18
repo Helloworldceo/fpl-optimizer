@@ -1,4 +1,4 @@
-import type { GameweekInfo, SquadOption } from "./types";
+import type { GameweekInfo, GameweekSummary, Player, SquadOption, TeamStanding } from "./types";
 
 export interface SquadsResponse {
   options: SquadOption[];
@@ -7,6 +7,21 @@ export interface SquadsResponse {
   gameweek: GameweekInfo | null;
 }
 
-export interface SquadsErrorResponse {
+export interface StandingsResponse {
+  standings: TeamStanding[];
+}
+
+export interface GameweeksResponse {
+  gameweeks: GameweekSummary[];
+}
+
+export interface TeamOfTheWeekResponse {
+  gameweek: GameweekSummary;
+  startingXi: Player[];
+  topPerformerId: number | null;
+  totalPoints: number;
+}
+
+export interface ErrorResponse {
   error: string;
 }

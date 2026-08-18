@@ -1,7 +1,9 @@
-import type { GameweekInfo, Player, Position } from "./types";
+import type { GameweekInfo, GameweekSummary, Player, Position, TeamStanding } from "./types";
 
 const BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 const FIXTURES_URL = "https://fantasy.premierleague.com/api/fixtures/?future=1";
+const EVENT_LIVE_URL = (eventId: number) =>
+  `https://fantasy.premierleague.com/api/event/${eventId}/live/`;
 
 const POSITION_MAP: Record<number, Position> = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
 const UNAVAILABLE_STATUSES = new Set(["i", "s", "u", "n"]);
@@ -24,6 +26,13 @@ interface BootstrapElement {
 interface BootstrapTeam {
   id: number;
   name: string;
+  short_name: string;
+  played: number;
+  win: number;
+  draw: number;
+  loss: number;
+  points: number;
+  position: number;
 }
 
 interface BootstrapEvent {
@@ -49,6 +58,11 @@ interface Fixture {
   team_a_difficulty: number;
 }
 
+interface EventLiveElement {
+  id: number;
+  stats?: { total_points?: number };
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const resp = await fetch(url, {
     headers: { "User-Agent": "fpl-optimizer-web" },
@@ -60,10 +74,10 @@ async function fetchJson<T>(url: string): Promise<T> {
   return resp.json() as Promise<T>;
 }
 
-function playersFromBootstrap(data: BootstrapResponse): Player[] {
+function allPlayersFromBootstrap(data: BootstrapResponse): Player[] {
   const teamNames = new Map(data.teams.map((t) => [t.id, t.name]));
 
-  const players: Player[] = data.elements.map((e) => ({
+  return data.elements.map((e) => ({
     id: e.id,
     webName: e.web_name,
     teamId: e.team,
@@ -80,8 +94,10 @@ function playersFromBootstrap(data: BootstrapResponse): Player[] {
     score: 0,
     confidence: 0,
   }));
+}
 
-  return players.filter(
+function playersFromBootstrap(data: BootstrapResponse): Player[] {
+  return allPlayersFromBootstrap(data).filter(
     (p) =>
       !UNAVAILABLE_STATUSES.has(p.status) &&
       (p.chanceOfPlayingNextRound === null || p.chanceOfPlayingNextRound >= 50)
@@ -97,6 +113,33 @@ function gameweekFromBootstrap(data: BootstrapResponse): GameweekInfo | null {
   return { id: event.id, name: event.name, deadlineTime: event.deadline_time };
 }
 
+function gameweeksFromBootstrap(data: BootstrapResponse): GameweekSummary[] {
+  return data.events.map((e) => ({
+    id: e.id,
+    name: e.name,
+    deadlineTime: e.deadline_time,
+    finished: e.finished,
+    isCurrent: e.is_current,
+    isNext: e.is_next,
+  }));
+}
+
+function standingsFromBootstrap(data: BootstrapResponse): TeamStanding[] {
+  return [...data.teams]
+    .map((t) => ({
+      teamId: t.id,
+      name: t.name,
+      shortName: t.short_name,
+      played: t.played,
+      win: t.win,
+      draw: t.draw,
+      loss: t.loss,
+      points: t.points,
+      position: t.position,
+    }))
+    .sort((a, b) => (a.position || 99) - (b.position || 99) || b.points - a.points);
+}
+
 export async function fetchPlayers(): Promise<Player[]> {
   const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
   return playersFromBootstrap(data);
@@ -108,6 +151,36 @@ export async function fetchPlayersAndGameweek(): Promise<{
 }> {
   const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
   return { players: playersFromBootstrap(data), gameweek: gameweekFromBootstrap(data) };
+}
+
+export async function fetchStandings(): Promise<TeamStanding[]> {
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  return standingsFromBootstrap(data);
+}
+
+export async function fetchGameweeks(): Promise<GameweekSummary[]> {
+  const data = await fetchJson<BootstrapResponse>(BOOTSTRAP_URL);
+  return gameweeksFromBootstrap(data);
+}
+
+/** All players (no availability filter) with that gameweek's actual FPL
+ * points, for building a historical "team of the week" — a player who is
+ * currently injured should still show up in a past gameweek they played. */
+export async function fetchGameweekPerformances(
+  eventId: number
+): Promise<{ players: Player[]; gameweek: GameweekSummary | null }> {
+  const [bootstrap, live] = await Promise.all([
+    fetchJson<BootstrapResponse>(BOOTSTRAP_URL),
+    fetchJson<{ elements: EventLiveElement[] }>(EVENT_LIVE_URL(eventId)),
+  ]);
+
+  const pointsById = new Map(live.elements.map((e) => [e.id, e.stats?.total_points ?? 0]));
+  const players = allPlayersFromBootstrap(bootstrap).map((p) => ({
+    ...p,
+    score: pointsById.get(p.id) ?? 0,
+  }));
+  const gameweek = gameweeksFromBootstrap(bootstrap).find((g) => g.id === eventId) ?? null;
+  return { players, gameweek };
 }
 
 export async function fetchTeamFixtureDifficulty(

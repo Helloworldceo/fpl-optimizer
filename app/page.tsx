@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Player, SquadOption } from "@/lib/types";
-import type { SquadsErrorResponse, SquadsResponse } from "@/lib/apiTypes";
+import type { ErrorResponse, SquadsResponse } from "@/lib/apiTypes";
 import { Controls, type ControlsState } from "./components/Controls";
 import { OptionsCompare } from "./components/OptionsCompare";
 import { Pitch } from "./components/Pitch";
@@ -11,6 +11,8 @@ import { PlayerPicker, type PlayerOption } from "./components/PlayerPicker";
 import { Hero } from "./components/Hero";
 import { Guide } from "./components/Guide";
 import { Contact } from "./components/Contact";
+import { StandingsTable } from "./components/StandingsTable";
+import { TeamOfTheWeek } from "./components/TeamOfTheWeek";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -160,7 +162,7 @@ export default function Home() {
       if (mustIncludeIds.length > 0) params.set("mustInclude", mustIncludeIds.join(","));
       if (mustExcludeIds.length > 0) params.set("mustExclude", mustExcludeIds.join(","));
       const resp = await fetch(`/api/squads?${params.toString()}`);
-      const data = (await resp.json()) as SquadsResponse | SquadsErrorResponse;
+      const data = (await resp.json()) as SquadsResponse | ErrorResponse;
       if (!resp.ok || "error" in data) {
         throw new Error("error" in data ? data.error : "Request failed");
       }
@@ -176,6 +178,12 @@ export default function Home() {
   return (
     <div className="max-w-4xl mx-auto w-full px-4 pb-8">
       <Hero />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10">
+        <StandingsTable />
+        <TeamOfTheWeek />
+      </div>
+
       <Guide />
 
       <Controls state={controls} onChange={(patch) => setControls((s) => ({ ...s, ...patch }))} onSubmit={buildSquads} loading={loading} />
