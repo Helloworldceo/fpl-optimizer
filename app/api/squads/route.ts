@@ -9,6 +9,16 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+function parseIds(raw: string | null): Set<number> {
+  if (!raw) return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => Number.isInteger(n))
+  );
+}
+
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const budget = clamp(parseFloat(params.get("budget") ?? "100"), 60, 100);
@@ -17,16 +27,34 @@ export async function GET(req: NextRequest) {
   const numOptions = clamp(parseInt(params.get("numOptions") ?? "5", 10), 1, 10);
   const minDiff = clamp(parseInt(params.get("minDiff") ?? "3", 10), 1, 10);
 
+  const mustExclude = parseIds(params.get("mustExclude"));
+  const mustInclude = new Set(
+    [...parseIds(params.get("mustInclude"))].filter((id) => !mustExclude.has(id))
+  );
+
   try {
     const players = await fetchPlayers();
     const fixtureDifficulty =
       fixtureLookahead > 0 ? await fetchTeamFixtureDifficulty(fixtureLookahead) : null;
     const scoredPlayers = computeScores(players, fixtureDifficulty);
 
-    const squads = selectTopSquads(scoredPlayers, budget, maxPerTeam, numOptions, minDiff);
+    const squads = selectTopSquads(
+      scoredPlayers,
+      budget,
+      maxPerTeam,
+      numOptions,
+      minDiff,
+      mustInclude,
+      mustExclude
+    );
     if (squads.length === 0) {
       return NextResponse.json(
-        { error: "No feasible squad found with these settings." },
+        {
+          error:
+            mustInclude.size > 0
+              ? "No feasible squad includes all of your must-include players within the budget, formation, and club-limit constraints. Try a higher budget, a higher max-per-club, or fewer must-include picks."
+              : "No feasible squad found with these settings.",
+        },
         { status: 422 }
       );
     }

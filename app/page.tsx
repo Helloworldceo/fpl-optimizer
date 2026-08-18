@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Player, SquadOption } from "@/lib/types";
 import type { SquadsErrorResponse, SquadsResponse } from "@/lib/apiTypes";
 import { Controls, type ControlsState } from "./components/Controls";
 import { OptionsCompare } from "./components/OptionsCompare";
 import { Pitch } from "./components/Pitch";
 import { BenchStrip } from "./components/BenchStrip";
+import { PlayerPicker, type PlayerOption } from "./components/PlayerPicker";
 
 const POSITION_ORDER: Player["position"][] = ["GK", "DEF", "MID", "FWD"];
 
@@ -110,6 +111,17 @@ export default function Home() {
   const [result, setResult] = useState<SquadsResponse | null>(null);
   const [activeTab, setActiveTab] = useState(0);
 
+  const [playerOptions, setPlayerOptions] = useState<PlayerOption[]>([]);
+  const [mustIncludeIds, setMustIncludeIds] = useState<number[]>([]);
+  const [mustExcludeIds, setMustExcludeIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    fetch("/api/players")
+      .then((r) => r.json())
+      .then((data: { players?: PlayerOption[] }) => setPlayerOptions(data.players ?? []))
+      .catch(() => {});
+  }, []);
+
   async function buildSquads() {
     setLoading(true);
     setError(null);
@@ -121,6 +133,8 @@ export default function Home() {
         numOptions: String(controls.numOptions),
         minDiff: String(controls.minDiff),
       });
+      if (mustIncludeIds.length > 0) params.set("mustInclude", mustIncludeIds.join(","));
+      if (mustExcludeIds.length > 0) params.set("mustExclude", mustExcludeIds.join(","));
       const resp = await fetch(`/api/squads?${params.toString()}`);
       const data = (await resp.json()) as SquadsResponse | SquadsErrorResponse;
       if (!resp.ok || "error" in data) {
@@ -146,6 +160,25 @@ export default function Home() {
       </header>
 
       <Controls state={controls} onChange={(patch) => setControls((s) => ({ ...s, ...patch }))} onSubmit={buildSquads} loading={loading} />
+
+      <div className="rounded-xl border border-black/10 dark:border-white/10 p-5 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <PlayerPicker
+          label="Must include"
+          accent="green"
+          options={playerOptions}
+          selectedIds={mustIncludeIds}
+          disabledIds={new Set(mustExcludeIds)}
+          onChange={setMustIncludeIds}
+        />
+        <PlayerPicker
+          label="Must exclude"
+          accent="red"
+          options={playerOptions}
+          selectedIds={mustExcludeIds}
+          disabledIds={new Set(mustIncludeIds)}
+          onChange={setMustExcludeIds}
+        />
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 px-4 py-3 mb-6 text-sm">

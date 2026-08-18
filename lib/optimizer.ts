@@ -36,7 +36,8 @@ function solveSquadLp(
   budget: number,
   maxPerTeam: number,
   excludeSquads: Set<number>[],
-  minDiff: number
+  minDiff: number,
+  mustIncludeIds: Set<number>
 ): Player[] | null {
   const teamIds = Array.from(new Set(players.map((p) => p.teamId)));
 
@@ -48,6 +49,9 @@ function solveSquadLp(
   excludeSquads.forEach((_, i) => {
     constraints[`prev_${i}`] = { max: 15 - minDiff };
   });
+  for (const id of mustIncludeIds) {
+    constraints[`must_${id}`] = { min: 1 };
+  }
 
   const variables: Record<string, LpVariable> = {};
   const binaries: Record<string, 1> = {};
@@ -57,6 +61,7 @@ function solveSquadLp(
     excludeSquads.forEach((prevIds, i) => {
       if (prevIds.has(p.id)) v[`prev_${i}`] = 1;
     });
+    if (mustIncludeIds.has(p.id)) v[`must_${p.id}`] = 1;
     variables[key] = v;
     binaries[key] = 1;
   }
@@ -85,12 +90,15 @@ export function selectTopSquads(
   budget: number,
   maxPerTeam: number,
   numOptions: number,
-  minDiff: number
+  minDiff: number,
+  mustIncludeIds: Set<number> = new Set(),
+  mustExcludeIds: Set<number> = new Set()
 ): Player[][] {
+  const pool = players.filter((p) => !mustExcludeIds.has(p.id));
   const squads: Player[][] = [];
   const excludeSquads: Set<number>[] = [];
   for (let i = 0; i < numOptions; i++) {
-    const squad = solveSquadLp(players, budget, maxPerTeam, excludeSquads, minDiff);
+    const squad = solveSquadLp(pool, budget, maxPerTeam, excludeSquads, minDiff, mustIncludeIds);
     if (!squad) break;
     squads.push(squad);
     excludeSquads.push(new Set(squad.map((p) => p.id)));
