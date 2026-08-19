@@ -2,7 +2,15 @@
 
 :root {
   --background: #ffffff;
-  --background-wash: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34, 197, 94, 0.06), transparent 60%);
+  --background-wash:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34, 197, 94, 0.06), transparent 60%),
+    repeating-linear-gradient(
+      120deg,
+      rgba(34, 197, 94, 0.03) 0px,
+      rgba(34, 197, 94, 0.03) 36px,
+      transparent 36px,
+      transparent 72px
+    );
   --foreground: #171717;
 }
 
@@ -16,7 +24,15 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --background-wash: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34, 197, 94, 0.1), transparent 60%);
+    --background-wash:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34, 197, 94, 0.1), transparent 60%),
+      repeating-linear-gradient(
+        120deg,
+        rgba(34, 197, 94, 0.05) 0px,
+        rgba(34, 197, 94, 0.05) 36px,
+        transparent 36px,
+        transparent 72px
+      );
     --foreground: #ededed;
   }
 }
