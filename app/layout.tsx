@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
@@ -42,9 +44,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            (function () {
+              try {
+                var stored = localStorage.getItem("theme");
+                var dark =
+                  stored === "dark" ||
+                  (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
+                document.documentElement.classList.toggle("dark", dark);
+              } catch (e) {}
+            })();
+          `}
+        </Script>
         <Header />
         <main className="flex-1 flex flex-col">{children}</main>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );

@@ -112,7 +112,20 @@ long-lived Python/Streamlit process or spawn the CBC solver binary.
   players (Haaland, Saka, B.Fernandes, Palmer, Isak, Watkins) under the
   hero, using the same photo CDN. Static/hardcoded list, not tied to
   live squad data — just visual identity.
-- `app/layout.tsx` — sticky header + footer site chrome.
+- `app/components/ThemeToggle.tsx` — manual dark/light toggle in the
+  header. Tailwind's `dark:` variant was switched from the default
+  OS-only `prefers-color-scheme` strategy to a `.dark`-class strategy
+  (`@custom-variant dark` in `globals.css`) so both Tailwind utilities
+  and the CSS custom properties (`--background`, `--foreground`, etc.)
+  key off the same source of truth. A blocking inline script
+  (`next/script`, `strategy="beforeInteractive"`) resolves
+  localStorage-or-OS-preference into that class before first paint, so
+  there's no flash of the wrong theme; the toggle just flips the class
+  and persists the explicit choice.
+- `app/layout.tsx` — sticky header + footer site chrome, plus
+  `<Analytics />` from `@vercel/analytics/next` (page views/traffic —
+  inactive locally by design; only collects data once deployed on
+  Vercel with Web Analytics enabled for the project in its dashboard).
 - `app/icon.tsx` / `app/apple-icon.tsx` / `app/opengraph-image.tsx` —
   generated favicon and social-preview card (via `next/og`), so links
   shared in chats/group texts render a proper card instead of a bare URL.

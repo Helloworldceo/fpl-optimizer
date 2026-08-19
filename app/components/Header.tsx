@@ -1,3 +1,5 @@
+import { ThemeToggle } from "./ThemeToggle";
+
 export function Header() {
   return (
     <header
@@ -26,6 +28,7 @@ export function Header() {
           >
             GitHub
           </a>
+          <ThemeToggle />
         </nav>
       </div>
     </header>

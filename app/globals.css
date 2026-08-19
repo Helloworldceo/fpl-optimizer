@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* All `dark:` utilities key off a .dark class on <html> (set by the inline
+   script in layout.tsx before paint, and toggled by ThemeToggle) instead of
+   only following the OS's prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --background-wash:
@@ -14,27 +19,25 @@
   --foreground: #171717;
 }
 
+:root.dark {
+  --background: #0a0a0a;
+  --background-wash:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34, 197, 94, 0.1), transparent 60%),
+    repeating-linear-gradient(
+      120deg,
+      rgba(34, 197, 94, 0.05) 0px,
+      rgba(34, 197, 94, 0.05) 36px,
+      transparent 36px,
+      transparent 72px
+    );
+  --foreground: #ededed;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --background-wash:
-      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34, 197, 94, 0.1), transparent 60%),
-      repeating-linear-gradient(
-        120deg,
-        rgba(34, 197, 94, 0.05) 0px,
-        rgba(34, 197, 94, 0.05) 36px,
-        transparent 36px,
-        transparent 72px
-      );
-    --foreground: #ededed;
-  }
 }
 
 body {
