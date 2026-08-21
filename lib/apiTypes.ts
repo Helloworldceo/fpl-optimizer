@@ -1,4 +1,5 @@
 import type {
+  FixturePrediction,
   GameweekInfo,
   GameweekSummary,
   Player,
@@ -43,6 +44,12 @@ export interface BestTransferResponse {
   gameweek: GameweekInfo | null;
   freeTransfers: number;
   bank: number;
+}
+
+export interface FixturePredictionsResponse {
+  gameweek: GameweekSummary;
+  predictions: FixturePrediction[];
+  usingFallback: boolean;
 }
 
 export interface ErrorResponse {

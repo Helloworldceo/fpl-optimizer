@@ -53,6 +53,25 @@ export interface TeamStanding {
   position: number;
 }
 
+export interface FixtureTeam {
+  teamId: number;
+  teamCode: number;
+  name: string;
+  shortName: string;
+}
+
+export interface FixturePrediction {
+  fixtureId: number;
+  kickoffTime: string | null;
+  homeTeam: FixtureTeam;
+  awayTeam: FixtureTeam;
+  predictedHomeGoals: number;
+  predictedAwayGoals: number;
+  homeWinProb: number;
+  drawProb: number;
+  awayWinProb: number;
+}
+
 export interface SquadOption {
   squad: Player[];
   startingXi: Player[];

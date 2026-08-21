@@ -15,6 +15,7 @@ import { StandingsTable } from "./components/StandingsTable";
 import { TeamOfTheWeek } from "./components/TeamOfTheWeek";
 import { TransferTargets } from "./components/TransferTargets";
 import { TransferFinder } from "./components/TransferFinder";
+import { FixturePredictions } from "./components/FixturePredictions";
 import { MiniLeagueBanner } from "./components/MiniLeagueBanner";
 import { TeamCrest } from "./components/TeamCrest";
 
@@ -394,6 +395,10 @@ export default function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-10 mb-10">
         <StandingsTable />
         <TeamOfTheWeek />
+      </div>
+
+      <div className="mb-10">
+        <FixturePredictions />
       </div>
 
       <TransferTargets />
