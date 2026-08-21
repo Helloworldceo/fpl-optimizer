@@ -8,6 +8,16 @@ import { TeamCrest } from "@/app/components/TeamCrest";
 
 const initialState: PredictionState = {};
 
+function formatKickoff(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function PredictionRow({
   fixture,
   eventId,
@@ -28,6 +38,12 @@ export function PredictionRow({
 
   return (
     <div className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2.5">
+      {fixture.kickoffTime && !fixture.finished && (
+        <div className="text-[11px] text-neutral-400 dark:text-neutral-500 mb-1.5 text-center">
+          {locked ? "Locked — kicked off " : "Predict until kickoff: "}
+          {formatKickoff(fixture.kickoffTime)}
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
           <span className="text-sm truncate">{fixture.homeTeam.shortName}</span>
