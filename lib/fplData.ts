@@ -1,10 +1,6 @@
 import type { FixturePrediction, GameweekInfo, GameweekSummary, Player, Position, TeamStanding } from "./types";
-import {
-  computeLeagueAverageStrength,
-  expectedGoals,
-  expectedGoalsFromDifficulty,
-  predictScoreline,
-} from "./predictions";
+import { expectedGoalsFromDifficulty, expectedGoalsFromElo, predictScoreline } from "./predictions";
+import { fetchClubEloRatings, resolveClubEloRating } from "./clubElo";
 
 const BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 // No ?future=1 filter: an explicit GW-range picker needs full-season fixture
@@ -53,10 +49,6 @@ interface BootstrapTeam {
   loss: number;
   points: number;
   position: number;
-  strength_attack_home: number;
-  strength_attack_away: number;
-  strength_defence_home: number;
-  strength_defence_away: number;
 }
 
 interface BootstrapEvent {
@@ -256,65 +248,44 @@ export async function fetchTeamFixtureDifficulty(
 }
 
 /** Predicted scoreline + win/draw/loss probabilities for every fixture in a
- * gameweek, via a Poisson model built on FPL's own team strength ratings
- * (see lib/predictions.ts). Works for past, current, or future gameweeks —
- * the model doesn't know or care whether a fixture has been played yet.
- * `usingFallback` is true when FPL hasn't published strength ratings yet
- * (pre-season) and fixture difficulty was used as a cruder substitute. */
+ * gameweek, via a Poisson model. Primary signal is ClubElo's club Elo
+ * ratings; a fixture falls back to FPL's own difficulty ratings if either
+ * club's Elo can't be resolved (see lib/predictions.ts and lib/clubElo.ts).
+ * Works for past, current, or future gameweeks — the model doesn't know or
+ * care whether a fixture has been played yet. `usingFallback` is true if
+ * *any* fixture in the gameweek had to use the difficulty-based fallback. */
 export async function fetchFixturePredictions(
   eventId: number
 ): Promise<{ predictions: FixturePrediction[]; usingFallback: boolean }> {
-  const [bootstrap, fixtures] = await Promise.all([
+  const [bootstrap, fixtures, eloRatings] = await Promise.all([
     fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS),
     fetchJson<Fixture[]>(FIXTURES_URL, FIXTURES_REVALIDATE_SECONDS),
+    fetchClubEloRatings(),
   ]);
 
   const teamsById = new Map(bootstrap.teams.map((t) => [t.id, t]));
-  const leagueAvg = computeLeagueAverageStrength(
-    bootstrap.teams.map((t) => ({
-      attackHome: t.strength_attack_home,
-      attackAway: t.strength_attack_away,
-      defenceHome: t.strength_defence_home,
-      defenceAway: t.strength_defence_away,
-    }))
-  );
-
-  // FPL zeroes every team's strength ratings out league-wide until the
-  // season's first ball is kicked. Detect that rather than let it silently
-  // produce division-by-zero / NaN, and fall back to fixture difficulty
-  // (which is populated even pre-season) instead.
-  const strengthDataReady =
-    leagueAvg.attackHome > 0 &&
-    leagueAvg.attackAway > 0 &&
-    leagueAvg.defenceHome > 0 &&
-    leagueAvg.defenceAway > 0;
 
   const relevant = fixtures
     .filter((f) => f.event === eventId)
     .sort((a, b) => (a.kickoff_time ?? "").localeCompare(b.kickoff_time ?? ""));
+
+  let usedFallback = false;
 
   const predictions = relevant.flatMap((f) => {
     const home = teamsById.get(f.team_h);
     const away = teamsById.get(f.team_a);
     if (!home || !away) return [];
 
-    const { homeGoals, awayGoals } = strengthDataReady
-      ? expectedGoals(
-          {
-            attackHome: home.strength_attack_home,
-            attackAway: home.strength_attack_away,
-            defenceHome: home.strength_defence_home,
-            defenceAway: home.strength_defence_away,
-          },
-          {
-            attackHome: away.strength_attack_home,
-            attackAway: away.strength_attack_away,
-            defenceHome: away.strength_defence_home,
-            defenceAway: away.strength_defence_away,
-          },
-          leagueAvg
-        )
-      : expectedGoalsFromDifficulty(f.team_h_difficulty, f.team_a_difficulty);
+    const homeElo = eloRatings ? resolveClubEloRating(home.name, eloRatings) : null;
+    const awayElo = eloRatings ? resolveClubEloRating(away.name, eloRatings) : null;
+
+    const { homeGoals, awayGoals } =
+      homeElo !== null && awayElo !== null
+        ? expectedGoalsFromElo(homeElo, awayElo)
+        : (() => {
+            usedFallback = true;
+            return expectedGoalsFromDifficulty(f.team_h_difficulty, f.team_a_difficulty);
+          })();
     const prediction = predictScoreline(homeGoals, awayGoals);
 
     return [
@@ -328,5 +299,5 @@ export async function fetchFixturePredictions(
     ];
   });
 
-  return { predictions, usingFallback: !strengthDataReady };
+  return { predictions, usingFallback: usedFallback };
 }

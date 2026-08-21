@@ -1,25 +1,23 @@
-// A simplified Poisson goal-scoring model, using FPL's own team strength
-// ratings (strength_attack_home/away, strength_defence_home/away) rather
-// than a separately trained model. This is a standard, transparent approach
-// in football analytics — not a black box — but it's still a statistical
-// estimate: treat it as a directional read on two teams' relative strength,
-// not a real prediction of what will happen. Football has genuine variance
-// no model this simple (or, frankly, any model) fully captures.
+// A simplified Poisson goal-scoring model. Primary signal is ClubElo's club
+// Elo ratings (lib/clubElo.ts); when a club's rating can't be resolved
+// (fetch failure, or a club ClubElo doesn't carry at English top-flight
+// level), falls back to FPL's own fixture difficulty ratings instead. This
+// is a standard, transparent statistical approach — not a black box — but
+// it's still an estimate: treat it as a directional read on two teams'
+// relative strength, not a real prediction of what will happen. Football
+// has genuine variance no model this simple (or, frankly, any model) fully
+// captures.
 
-export interface TeamStrength {
-  attackHome: number;
-  attackAway: number;
-  defenceHome: number;
-  defenceAway: number;
-}
-
-// Approximate recent Premier League per-team-per-game averages.
 const LEAGUE_AVG_HOME_GOALS = 1.5;
 const LEAGUE_AVG_AWAY_GOALS = 1.2;
 
 const MAX_GOALS = 6;
 const MIN_EXPECTED_GOALS = 0.2;
 const MAX_EXPECTED_GOALS = 4.5;
+
+// clubelo.com's own commonly-cited approximate home-advantage constant, in
+// Elo points.
+const ELO_HOME_ADVANTAGE = 65;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -31,61 +29,30 @@ function poissonPmf(k: number, lambda: number): number {
   return (lambda ** k * Math.exp(-lambda)) / factorial;
 }
 
-export interface LeagueAverageStrength {
-  attackHome: number;
-  attackAway: number;
-  defenceHome: number;
-  defenceAway: number;
-}
-
-export function computeLeagueAverageStrength(teams: TeamStrength[]): LeagueAverageStrength {
-  const n = teams.length || 1;
-  const sum = teams.reduce(
-    (acc, t) => ({
-      attackHome: acc.attackHome + t.attackHome,
-      attackAway: acc.attackAway + t.attackAway,
-      defenceHome: acc.defenceHome + t.defenceHome,
-      defenceAway: acc.defenceAway + t.defenceAway,
-    }),
-    { attackHome: 0, attackAway: 0, defenceHome: 0, defenceAway: 0 }
-  );
-  return {
-    attackHome: sum.attackHome / n,
-    attackAway: sum.attackAway / n,
-    defenceHome: sum.defenceHome / n,
-    defenceAway: sum.defenceAway / n,
-  };
-}
-
-export function expectedGoals(
-  home: TeamStrength,
-  away: TeamStrength,
-  leagueAvg: LeagueAverageStrength
-): { homeGoals: number; awayGoals: number } {
-  const homeAttackRatio = home.attackHome / leagueAvg.attackHome;
-  const awayDefenceRatio = away.defenceAway / leagueAvg.defenceAway;
-  const awayAttackRatio = away.attackAway / leagueAvg.attackAway;
-  const homeDefenceRatio = home.defenceHome / leagueAvg.defenceHome;
-
+/** Expected goals from each side's Elo rating, using Elo's own well-known
+ * exponential expected-score form (the same base-10/400 structure behind
+ * the standard `1 / (1 + 10^(-diff/400))` win-probability formula) applied
+ * multiplicatively to a league-average goals baseline, rather than an
+ * arbitrary invented scaling constant. */
+export function expectedGoalsFromElo(homeElo: number, awayElo: number): { homeGoals: number; awayGoals: number } {
+  const adjustedHomeElo = homeElo + ELO_HOME_ADVANTAGE;
   const homeGoals = clamp(
-    LEAGUE_AVG_HOME_GOALS * (homeAttackRatio / awayDefenceRatio),
+    LEAGUE_AVG_HOME_GOALS * 10 ** ((adjustedHomeElo - awayElo) / 400),
     MIN_EXPECTED_GOALS,
     MAX_EXPECTED_GOALS
   );
   const awayGoals = clamp(
-    LEAGUE_AVG_AWAY_GOALS * (awayAttackRatio / homeDefenceRatio),
+    LEAGUE_AVG_AWAY_GOALS * 10 ** ((awayElo - adjustedHomeElo) / 400),
     MIN_EXPECTED_GOALS,
     MAX_EXPECTED_GOALS
   );
   return { homeGoals, awayGoals };
 }
 
-/** Fallback for when FPL hasn't published team strength ratings yet (all
- * zero, which happens league-wide before a season's first ball is kicked) —
- * derive expected goals from the fixture's difficulty ratings (1-5,
- * opponent-relative, populated even pre-season) instead of producing NaN
- * from a division by zero. Cruder than the strength-based model, but honest
- * about what data actually exists right now. */
+/** Fallback for when a club's Elo rating can't be resolved — derive expected
+ * goals from the fixture's FPL difficulty ratings (1-5, opponent-relative,
+ * populated even pre-season) instead. Cruder, but honest about what data
+ * actually exists for that fixture. */
 export function expectedGoalsFromDifficulty(
   homeDifficulty: number,
   awayDifficulty: number

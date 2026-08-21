@@ -94,16 +94,17 @@ export function FixturePredictions() {
       </div>
 
       <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
-        Predicted scorelines from a Poisson model built on each team&apos;s FPL strength ratings —
-        a statistical read on relative strength, not a real forecast. Treat it as a talking point,
+        Predicted scorelines from a Poisson model built on ClubElo&apos;s club ratings — a
+        statistical read on relative strength, not a real forecast. Treat it as a talking point,
         not a guarantee.
       </p>
 
       {data?.usingFallback && !loading && !error && (
         <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 rounded px-2.5 py-1.5 mb-3">
-          FPL hasn&apos;t published team strength ratings for this season yet, so these use fixture
-          difficulty as a rougher stand-in — expect them to sharpen up once a few gameweeks have
-          been played.
+          At least one fixture below fell back to FPL&apos;s own fixture-difficulty ratings, since
+          a ClubElo rating wasn&apos;t available for one of the clubs (e.g. newly promoted sides,
+          or a temporary ClubElo outage) — expect those specific predictions to be rougher than
+          the rest.
         </p>
       )}
 
