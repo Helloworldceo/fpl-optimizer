@@ -103,6 +103,29 @@ export interface ProfileResponse {
   predictions: ProfilePrediction[];
 }
 
+export interface TablePredictionEntry {
+  teamId: number;
+  position: number;
+}
+
+export interface TablePredictionsResponse {
+  teams: TeamStanding[];
+  myPrediction: TablePredictionEntry[] | null;
+  locked: boolean;
+  deadlineTime: string | null;
+  liveScore: number | null;
+}
+
+export interface TableLeaderboardEntry {
+  userId: string;
+  name: string;
+  points: number;
+}
+
+export interface TableLeaderboardResponse {
+  leaderboard: TableLeaderboardEntry[];
+}
+
 export interface ErrorResponse {
   error: string;
 }

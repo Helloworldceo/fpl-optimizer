@@ -17,3 +17,10 @@ export function scorePrediction(
   const actualResult = Math.sign(actualHome - actualAway);
   return predictedResult === actualResult ? 1 : 0;
 }
+
+// Full marks (20) for an exact position match, tapering off by 1 point per
+// place away, floored at 0 — so a near-miss still scores something instead
+// of an all-or-nothing exact match, which would be brutal across 20 teams.
+export function scoreTablePosition(predictedPosition: number, currentPosition: number): number {
+  return Math.max(0, 20 - Math.abs(predictedPosition - currentPosition));
+}

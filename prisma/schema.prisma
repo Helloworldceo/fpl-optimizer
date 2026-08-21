@@ -14,6 +14,7 @@ model User {
   passwordHash      String
   createdAt         DateTime           @default(now())
   predictions       Prediction[]
+  tablePredictions  TablePrediction[]
   ownedLeagues      League[]           @relation("OwnedLeagues")
   leagueMemberships LeagueMembership[]
 }
@@ -71,4 +72,26 @@ model Prediction {
   @@unique([userId, fixtureId])
   @@index([eventId])
   @@index([fixtureId])
+}
+
+// A user's predicted final league position for one team, for one season.
+// One user always has exactly 20 rows for a season — the whole table is
+// submitted and replaced together (see submitTablePrediction), never edited
+// team-by-team, so there's no window where two teams could momentarily
+// share a position. Scored continuously against FPL's live standings
+// (see lib/leaderboard.ts) rather than waiting for the season to finish —
+// the "final" score is just whatever this looks like on the last day.
+model TablePrediction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season    String
+  teamId    Int
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, season, teamId])
+  @@unique([userId, season, position])
+  @@index([userId, season])
 }
