@@ -40,7 +40,6 @@ export function PredictionRow({
     <div className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2.5">
       {fixture.kickoffTime && !fixture.finished && (
         <div className="text-[11px] text-neutral-400 dark:text-neutral-500 mb-1.5 text-center">
-          {locked ? "Locked — kicked off " : "Predict until kickoff: "}
           {formatKickoff(fixture.kickoffTime)}
         </div>
       )}
