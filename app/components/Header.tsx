@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { ThemeToggle } from "./ThemeToggle";
+import { ZoomControl } from "./ZoomControl";
 
 function SignOutButton() {
   return (
@@ -70,6 +71,7 @@ export async function Header() {
               Log in
             </Link>
           )}
+          <ZoomControl />
           <ThemeToggle />
         </nav>
       </div>

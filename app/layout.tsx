@@ -42,6 +42,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The theme-init and zoom-init scripts below set the "dark" class and
+      // an inline zoom style on this element before hydration, from
+      // localStorage, to avoid a flash of the wrong theme/zoom on load —
+      // React never rendered those itself, so it would otherwise warn about
+      // a hydration mismatch that isn't a real bug.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <Script id="theme-init" strategy="beforeInteractive">
@@ -53,6 +59,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   stored === "dark" ||
                   (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
                 document.documentElement.classList.toggle("dark", dark);
+              } catch (e) {}
+            })();
+          `}
+        </Script>
+        <Script id="zoom-init" strategy="beforeInteractive">
+          {`
+            (function () {
+              try {
+                var stored = parseInt(localStorage.getItem("zoom"), 10);
+                if (stored && stored >= 80 && stored <= 150) {
+                  document.documentElement.style.zoom = stored + "%";
+                }
               } catch (e) {}
             })();
           `}
