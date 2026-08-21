@@ -8,12 +8,36 @@ datasource db {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  name         String
-  email        String       @unique
-  passwordHash String
-  createdAt    DateTime     @default(now())
-  predictions  Prediction[]
+  id                String             @id @default(cuid())
+  name              String
+  email             String             @unique
+  passwordHash      String
+  createdAt         DateTime           @default(now())
+  predictions       Prediction[]
+  ownedLeagues      League[]           @relation("OwnedLeagues")
+  leagueMemberships LeagueMembership[]
+}
+
+model League {
+  id        String             @id @default(cuid())
+  name      String
+  code      String             @unique
+  ownerId   String
+  owner     User               @relation("OwnedLeagues", fields: [ownerId], references: [id])
+  members   LeagueMembership[]
+  createdAt DateTime           @default(now())
+}
+
+model LeagueMembership {
+  id       String   @id @default(cuid())
+  leagueId String
+  league   League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@unique([leagueId, userId])
+  @@index([userId])
 }
 
 // One row per user per fixture. Deliberately doesn't store the fixture's

@@ -57,6 +57,9 @@ export async function Header() {
           </a>
           {session?.user ? (
             <>
+              <Link href="/leagues" className={linkClass}>
+                Leagues
+              </Link>
               <Link href="/profile" className={linkClass}>
                 My Profile
               </Link>
