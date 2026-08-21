@@ -13,12 +13,15 @@ export function TablePredictionClient() {
   const [order, setOrder] = useState<number[]>([]);
   const [state, formAction, pending] = useActionState(submitTablePrediction, initialState);
 
-  // Drag-to-reorder state. dragIndex is the row currently being dragged;
-  // dragOffset is its live pointer-following visual offset in px. Reordering
-  // the underlying array happens as soon as the pointer crosses a
-  // neighboring row's midpoint, same as most native reorderable lists.
+  // Drag-to-reorder state. dragIndex is the row currently being dragged,
+  // used only for the shadow/z-index styling — it changes once per row
+  // crossed, not per pixel. The live pointer-following offset is applied
+  // straight to the DOM via draggedElRef instead of React state: pointermove
+  // can fire dozens of times a second, and routing that through setState
+  // re-rendered all 20 rows on every single pixel of movement, which is what
+  // was actually causing the lag.
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
+  const draggedElRef = useRef<HTMLLIElement | null>(null);
   const rowHeightRef = useRef(44);
   const pointerStartYRef = useRef(0);
 
@@ -51,15 +54,16 @@ export function TablePredictionClient() {
   function onHandlePointerDown(e: React.PointerEvent<HTMLButtonElement>, index: number) {
     e.currentTarget.setPointerCapture(e.pointerId);
     pointerStartYRef.current = e.clientY;
-    rowHeightRef.current = e.currentTarget.closest("li")?.getBoundingClientRect().height ?? 44;
+    const li = e.currentTarget.closest("li");
+    draggedElRef.current = li;
+    rowHeightRef.current = li?.getBoundingClientRect().height ?? 44;
     setDragIndex(index);
-    setDragOffset(0);
   }
 
   function onHandlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
-    if (dragIndex === null) return;
+    if (dragIndex === null || !draggedElRef.current) return;
     const delta = e.clientY - pointerStartYRef.current;
-    setDragOffset(delta);
+    draggedElRef.current.style.transform = `translateY(${delta}px)`;
 
     const rowsToMove = Math.round(delta / rowHeightRef.current);
     if (rowsToMove === 0) return;
@@ -74,12 +78,13 @@ export function TablePredictionClient() {
     });
     setDragIndex(target);
     pointerStartYRef.current = e.clientY;
-    setDragOffset(0);
+    draggedElRef.current.style.transform = "translateY(0px)";
   }
 
   function onHandlePointerUp() {
+    if (draggedElRef.current) draggedElRef.current.style.transform = "";
+    draggedElRef.current = null;
     setDragIndex(null);
-    setDragOffset(0);
   }
 
   if (error) return <p className="text-sm text-red-600 dark:text-red-400">{error}</p>;
@@ -137,9 +142,8 @@ export function TablePredictionClient() {
             <li
               key={teamId}
               className={`flex items-center gap-2.5 rounded-lg border border-black/5 dark:border-white/10 px-3 py-2 bg-white dark:bg-neutral-950 ${
-                dragging ? "relative z-10 shadow-lg" : "transition-transform"
+                dragging ? "relative z-10 shadow-lg" : ""
               }`}
-              style={dragging ? { transform: `translateY(${dragOffset}px)` } : undefined}
             >
               <button
                 type="button"
