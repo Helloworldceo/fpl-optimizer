@@ -99,7 +99,7 @@ export function FixturePredictions() {
         not a guarantee.
       </p>
 
-      {data?.usingFallback && !loading && !error && (
+      {data?.usingFallback && !error && (
         <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 rounded px-2.5 py-1.5 mb-3">
           At least one fixture below fell back to FPL&apos;s own fixture-difficulty ratings, since
           a ClubElo rating wasn&apos;t available for one of the clubs (e.g. newly promoted sides,
@@ -108,18 +108,14 @@ export function FixturePredictions() {
         </p>
       )}
 
-      {gameweeks === null && (
+      {(gameweeks === null || (loading && !data)) && (
         <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
       )}
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      {loading && !error && (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
-      )}
-
-      {data && !loading && !error && (
-        <div className="space-y-2">
+      {data && !error && (
+        <div className={`space-y-2 transition-opacity duration-150 ${loading ? "opacity-50" : "opacity-100"}`}>
           {data.predictions.map((p) => (
             <div
               key={p.fixtureId}

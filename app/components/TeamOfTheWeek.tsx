@@ -79,18 +79,14 @@ export function TeamOfTheWeek() {
         </p>
       )}
 
-      {gameweeks === null && (
+      {(gameweeks === null || (loading && !data)) && (
         <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
       )}
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      {loading && !error && (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
-      )}
-
-      {data && !loading && !error && (
-        <>
+      {data && !error && (
+        <div className={`transition-opacity duration-150 ${loading ? "opacity-50" : "opacity-100"}`}>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
             Highest-scoring valid XI by actual points — {data.totalPoints} total.
           </p>
@@ -100,7 +96,7 @@ export function TeamOfTheWeek() {
             viceCaptainId={-1}
             subtitleFor={(p) => `${p.score} pts`}
           />
-        </>
+        </div>
       )}
     </div>
   );

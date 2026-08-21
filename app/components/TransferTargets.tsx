@@ -42,11 +42,13 @@ export function TransferTargets() {
   const [position, setPosition] = useState<Position | "ALL">("ALL");
   const [targets, setTargets] = useState<Player[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
+      setLoading(true);
       setError(null);
       try {
         const params = new URLSearchParams({ limit: "15" });
@@ -57,6 +59,8 @@ export function TransferTargets() {
         if (!cancelled) setTargets(json.targets);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Something went wrong");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -99,7 +103,7 @@ export function TransferTargets() {
       )}
 
       {targets && !error && (
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto transition-opacity duration-150 ${loading ? "opacity-50" : "opacity-100"}`}>
           <div className="min-w-[32rem]">
             <div className="grid grid-cols-[1.5rem_3rem_1fr_1fr_4rem_5rem_4rem_3rem] items-center gap-2 py-1.5 px-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-black/5 dark:border-white/10">
               <span>#</span>

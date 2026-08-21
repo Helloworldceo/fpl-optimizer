@@ -16,6 +16,7 @@
 // specific code path needs a real check against production traffic.
 
 const CLUBELO_REVALIDATE_SECONDS = 3600;
+const CLUBELO_TIMEOUT_MS = 2000;
 
 // ClubElo's club names differ from FPL's for a handful of teams.
 const FPL_TO_CLUBELO_NAME: Record<string, string> = {
@@ -28,10 +29,24 @@ function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Next's fetch cache only ever caches *successful* responses — a timed-out
+// or failed request isn't cached, so as long as ClubElo stays unreachable,
+// every single request to this app would otherwise re-pay the full timeout
+// on every call. This in-memory backoff makes a warm serverless instance
+// skip the doomed network attempt entirely for a few minutes after a
+// failure, instead of every visitor waiting out a timeout that's already
+// known to fail. Resets immediately on the next success.
+let lastFailureAt: number | null = null;
+const FAILURE_BACKOFF_MS = 3 * 60 * 1000;
+
 /** Map of ClubElo club name -> current Elo rating, for English top-flight
  * clubs only. Returns null (rather than throwing) on any failure, so
  * callers can fall back cleanly instead of the whole prediction failing. */
 export async function fetchClubEloRatings(): Promise<Map<string, number> | null> {
+  if (lastFailureAt && Date.now() - lastFailureAt < FAILURE_BACKOFF_MS) {
+    return null;
+  }
+
   try {
     const res = await fetch(`http://api.clubelo.com/${todayIsoDate()}`, {
       headers: { "User-Agent": "fpl-optimizer-web" },
@@ -39,9 +54,12 @@ export async function fetchClubEloRatings(): Promise<Map<string, number> | null>
       // ClubElo has been observed to hang (connect, then never respond)
       // rather than fail fast — without a timeout, that would stall the
       // whole fixture-predictions request instead of falling back quickly.
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(CLUBELO_TIMEOUT_MS),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      lastFailureAt = Date.now();
+      return null;
+    }
 
     const csv = await res.text();
     const lines = csv.trim().split("\n");
@@ -64,6 +82,10 @@ export async function fetchClubEloRatings(): Promise<Map<string, number> | null>
     }
     return ratings;
   } catch {
+    // The observed failure mode is a hang that AbortSignal.timeout() cuts
+    // off, not an HTTP error — so this is the branch that actually needs to
+    // arm the backoff above.
+    lastFailureAt = Date.now();
     return null;
   }
 }

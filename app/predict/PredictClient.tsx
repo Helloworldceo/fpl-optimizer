@@ -75,14 +75,14 @@ export function PredictClient() {
         )}
       </div>
 
-      {(gameweeks === null || loading) && !error && (
+      {(gameweeks === null || (loading && !data)) && !error && (
         <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
       )}
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      {data && !loading && !error && (
-        <div className="space-y-2">
+      {data && !error && (
+        <div className={`space-y-2 transition-opacity duration-150 ${loading ? "opacity-50" : "opacity-100"}`}>
           {data.fixtures.map((f) => (
             <PredictionRow
               key={f.fixtureId}

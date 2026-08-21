@@ -92,15 +92,34 @@ interface EventLiveElement {
   stats?: { total_points?: number };
 }
 
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+// Next's Data Cache silently refuses to store anything over 2MB — and
+// bootstrap-static alone is ~2.1MB — so relying on `next: { revalidate }`
+// here means that endpoint never actually gets cached and every route that
+// touches it (most of them) re-fetches fresh from FPL on every request. This
+// explicit in-memory cache guarantees a payload is reused across requests on
+// a warm instance regardless of its size.
+const memoryCache = new Map<string, CacheEntry<unknown>>();
+
 async function fetchJson<T>(url: string, revalidateSeconds: number): Promise<T> {
+  const cached = memoryCache.get(url) as CacheEntry<T> | undefined;
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
   const resp = await fetch(url, {
     headers: { "User-Agent": "fpl-optimizer-web" },
-    next: { revalidate: revalidateSeconds },
+    cache: "no-store",
   });
   if (!resp.ok) {
     throw new Error(`FPL API request failed (${resp.status}): ${url}`);
   }
-  return resp.json() as Promise<T>;
+  const data = (await resp.json()) as T;
+  memoryCache.set(url, { data, expiresAt: Date.now() + revalidateSeconds * 1000 });
+  return data;
 }
 
 function allPlayersFromBootstrap(data: BootstrapResponse): Player[] {
