@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import type { TablePredictionsResponse } from "@/lib/apiTypes";
 import { submitTablePrediction, type TablePredictionState } from "@/lib/actions/tablePredictions";
 import { TeamCrest } from "@/app/components/TeamCrest";
@@ -12,6 +12,15 @@ export function TablePredictionClient() {
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<number[]>([]);
   const [state, formAction, pending] = useActionState(submitTablePrediction, initialState);
+
+  // Drag-to-reorder state. dragIndex is the row currently being dragged;
+  // dragOffset is its live pointer-following visual offset in px. Reordering
+  // the underlying array happens as soon as the pointer crosses a
+  // neighboring row's midpoint, same as most native reorderable lists.
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const rowHeightRef = useRef(44);
+  const pointerStartYRef = useRef(0);
 
   useEffect(() => {
     fetch("/api/table-predictions")
@@ -37,6 +46,40 @@ export function TablePredictionClient() {
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
+  }
+
+  function onHandlePointerDown(e: React.PointerEvent<HTMLButtonElement>, index: number) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointerStartYRef.current = e.clientY;
+    rowHeightRef.current = e.currentTarget.closest("li")?.getBoundingClientRect().height ?? 44;
+    setDragIndex(index);
+    setDragOffset(0);
+  }
+
+  function onHandlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    if (dragIndex === null) return;
+    const delta = e.clientY - pointerStartYRef.current;
+    setDragOffset(delta);
+
+    const rowsToMove = Math.round(delta / rowHeightRef.current);
+    if (rowsToMove === 0) return;
+    const target = Math.min(order.length - 1, Math.max(0, dragIndex + rowsToMove));
+    if (target === dragIndex) return;
+
+    setOrder((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(target, 0, moved);
+      return next;
+    });
+    setDragIndex(target);
+    pointerStartYRef.current = e.clientY;
+    setDragOffset(0);
+  }
+
+  function onHandlePointerUp() {
+    setDragIndex(null);
+    setDragOffset(0);
   }
 
   if (error) return <p className="text-sm text-red-600 dark:text-red-400">{error}</p>;
@@ -89,11 +132,27 @@ export function TablePredictionClient() {
         {order.map((teamId, i) => {
           const team = teamsById.get(teamId);
           if (!team) return null;
+          const dragging = i === dragIndex;
           return (
             <li
               key={teamId}
-              className="flex items-center gap-2.5 rounded-lg border border-black/5 dark:border-white/10 px-3 py-2"
+              className={`flex items-center gap-2.5 rounded-lg border border-black/5 dark:border-white/10 px-3 py-2 bg-white dark:bg-neutral-950 ${
+                dragging ? "relative z-10 shadow-lg" : "transition-transform"
+              }`}
+              style={dragging ? { transform: `translateY(${dragOffset}px)` } : undefined}
             >
+              <button
+                type="button"
+                onPointerDown={(e) => onHandlePointerDown(e, i)}
+                onPointerMove={onHandlePointerMove}
+                onPointerUp={onHandlePointerUp}
+                onPointerCancel={onHandlePointerUp}
+                aria-label={`Drag ${team.name} to reorder`}
+                style={{ touchAction: "none" }}
+                className="shrink-0 text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-grab active:cursor-grabbing select-none px-0.5"
+              >
+                ⠿
+              </button>
               <span className="w-6 text-sm text-neutral-400 dark:text-neutral-500 tabular-nums">{i + 1}</span>
               <TeamCrest teamCode={team.teamCode} size={20} />
               <span className="text-sm flex-1">{team.name}</span>
