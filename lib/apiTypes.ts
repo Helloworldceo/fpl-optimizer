@@ -1,5 +1,6 @@
 import type {
   FixturePrediction,
+  FixtureResult,
   GameweekInfo,
   GameweekSummary,
   Player,
@@ -50,6 +51,30 @@ export interface FixturePredictionsResponse {
   gameweek: GameweekSummary;
   predictions: FixturePrediction[];
   usingFallback: boolean;
+}
+
+export interface UserPrediction {
+  fixtureId: number;
+  predictedHome: number;
+  predictedAway: number;
+}
+
+export interface PredictResponse {
+  gameweek: GameweekSummary;
+  fixtures: FixtureResult[];
+  myPredictions: UserPrediction[];
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  name: string;
+  points: number;
+  predictionsScored: number;
+  exactScores: number;
+}
+
+export interface LeaderboardResponse {
+  leaderboard: LeaderboardEntry[];
 }
 
 export interface ErrorResponse {

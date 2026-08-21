@@ -1,4 +1,12 @@
-import type { FixturePrediction, GameweekInfo, GameweekSummary, Player, Position, TeamStanding } from "./types";
+import type {
+  FixturePrediction,
+  FixtureResult,
+  GameweekInfo,
+  GameweekSummary,
+  Player,
+  Position,
+  TeamStanding,
+} from "./types";
 import { expectedGoalsFromDifficulty, expectedGoalsFromElo, predictScoreline } from "./predictions";
 import { fetchClubEloRatings, resolveClubEloRating } from "./clubElo";
 
@@ -73,6 +81,8 @@ interface Fixture {
   team_a: number;
   team_h_difficulty: number;
   team_a_difficulty: number;
+  team_h_score: number | null;
+  team_a_score: number | null;
   kickoff_time: string | null;
   finished: boolean;
 }
@@ -300,4 +310,39 @@ export async function fetchFixturePredictions(
   });
 
   return { predictions, usingFallback: usedFallback };
+}
+
+/** Fixtures for a gameweek with team info and, once played, the actual
+ * final score — the ground truth the prediction game scores user guesses
+ * against. Kickoff time comes straight from FPL, so a prediction's "is this
+ * locked yet" check always reflects the real (possibly rescheduled) time. */
+export async function fetchFixturesForGameweek(eventId: number): Promise<FixtureResult[]> {
+  const [bootstrap, fixtures] = await Promise.all([
+    fetchJson<BootstrapResponse>(BOOTSTRAP_URL, BOOTSTRAP_REVALIDATE_SECONDS),
+    fetchJson<Fixture[]>(FIXTURES_URL, FIXTURES_REVALIDATE_SECONDS),
+  ]);
+
+  const teamsById = new Map(bootstrap.teams.map((t) => [t.id, t]));
+
+  return fixtures
+    .filter((f) => f.event === eventId)
+    .sort((a, b) => (a.kickoff_time ?? "").localeCompare(b.kickoff_time ?? ""))
+    .flatMap((f) => {
+      const home = teamsById.get(f.team_h);
+      const away = teamsById.get(f.team_a);
+      if (!home || !away) return [];
+
+      return [
+        {
+          fixtureId: f.id,
+          eventId,
+          kickoffTime: f.kickoff_time,
+          finished: f.finished,
+          homeTeam: { teamId: home.id, teamCode: home.code, name: home.name, shortName: home.short_name },
+          awayTeam: { teamId: away.id, teamCode: away.code, name: away.name, shortName: away.short_name },
+          homeScore: f.team_h_score,
+          awayScore: f.team_a_score,
+        },
+      ];
+    });
 }

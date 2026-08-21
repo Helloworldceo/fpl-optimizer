@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  predictions  Prediction[]
+}
+
+// One row per user per fixture. Deliberately doesn't store the fixture's
+// kickoff time or the actual result — both are looked up live from FPL's
+// fixtures API at request time (same "always read live FPL data" pattern
+// the rest of this app already follows), so a prediction can't go stale
+// relative to e.g. a TV-rescheduled kickoff.
+model Prediction {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fixtureId     Int
+  eventId       Int
+  predictedHome Int
+  predictedAway Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, fixtureId])
+  @@index([eventId])
+  @@index([fixtureId])
+}

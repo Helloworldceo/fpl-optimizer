@@ -72,6 +72,17 @@ export interface FixturePrediction {
   awayWinProb: number;
 }
 
+export interface FixtureResult {
+  fixtureId: number;
+  eventId: number;
+  kickoffTime: string | null;
+  finished: boolean;
+  homeTeam: FixtureTeam;
+  awayTeam: FixtureTeam;
+  homeScore: number | null;
+  awayScore: number | null;
+}
+
 export interface SquadOption {
   squad: Player[];
   startingXi: Player[];
