@@ -16,7 +16,13 @@
 // specific code path needs a real check against production traffic.
 
 const CLUBELO_REVALIDATE_SECONDS = 3600;
-const CLUBELO_TIMEOUT_MS = 2000;
+// Vercel's serverless functions don't reliably reuse the same warm instance
+// between requests, so the in-memory backoff below can't be counted on to
+// skip the network attempt in production the way it does on a long-lived
+// process — meaning most requests may still pay this timeout in full. Since
+// ClubElo is confirmed to hang rather than respond slowly, keeping this
+// short caps the worst case low even when the backoff doesn't get to help.
+const CLUBELO_TIMEOUT_MS = 800;
 
 // ClubElo's club names differ from FPL's for a handful of teams.
 const FPL_TO_CLUBELO_NAME: Record<string, string> = {
