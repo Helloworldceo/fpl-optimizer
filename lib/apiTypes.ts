@@ -77,6 +77,32 @@ export interface LeaderboardResponse {
   leaderboard: LeaderboardEntry[];
 }
 
+export interface ProfilePrediction {
+  fixtureId: number;
+  eventId: number;
+  eventName: string;
+  kickoffTime: string | null;
+  finished: boolean;
+  homeTeam: FixtureResult["homeTeam"];
+  awayTeam: FixtureResult["awayTeam"];
+  homeScore: number | null;
+  awayScore: number | null;
+  predictedHome: number;
+  predictedAway: number;
+  points: number | null;
+}
+
+export interface ProfileResponse {
+  name: string;
+  email: string;
+  memberSince: string;
+  totalPoints: number;
+  exactScores: number;
+  predictionsScored: number;
+  predictionsPending: number;
+  predictions: ProfilePrediction[];
+}
+
 export interface ErrorResponse {
   error: string;
 }

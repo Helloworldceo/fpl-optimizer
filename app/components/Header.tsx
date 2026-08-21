@@ -56,7 +56,12 @@ export async function Header() {
             GitHub
           </a>
           {session?.user ? (
-            <SignOutButton />
+            <>
+              <Link href="/profile" className={linkClass}>
+                My Profile
+              </Link>
+              <SignOutButton />
+            </>
           ) : (
             <Link href="/login" className={linkClass}>
               Log in
