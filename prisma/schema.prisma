@@ -40,6 +40,18 @@ model LeagueMembership {
   @@index([userId])
 }
 
+// A tiny key-value cache for upstream FPL API responses. Exists because
+// Vercel's serverless functions don't reliably reuse the same warm instance
+// between requests, so an in-memory cache alone leaves most requests paying
+// FPL's full fetch cost again (bootstrap-static alone is a multi-second,
+// ~2MB fetch). A DB row survives across every invocation regardless of
+// instance reuse, so a cache hit costs one fast Neon round-trip instead.
+model FplCache {
+  key       String   @id
+  data      String
+  expiresAt DateTime
+}
+
 // One row per user per fixture. Deliberately doesn't store the fixture's
 // kickoff time or the actual result — both are looked up live from FPL's
 // fixtures API at request time (same "always read live FPL data" pattern

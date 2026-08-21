@@ -9,6 +9,7 @@ import type {
 } from "./types";
 import { expectedGoalsFromDifficulty, expectedGoalsFromElo, predictScoreline } from "./predictions";
 import { fetchClubEloRatings, resolveClubEloRating } from "./clubElo";
+import { prisma } from "./prisma";
 
 const BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
 // No ?future=1 filter: an explicit GW-range picker needs full-season fixture
@@ -100,14 +101,24 @@ interface CacheEntry<T> {
 // bootstrap-static alone is ~2.1MB — so relying on `next: { revalidate }`
 // here means that endpoint never actually gets cached and every route that
 // touches it (most of them) re-fetches fresh from FPL on every request. This
-// explicit in-memory cache guarantees a payload is reused across requests on
-// a warm instance regardless of its size.
+// in-memory cache reuses a payload across requests on a warm instance
+// regardless of its size — but Vercel doesn't reliably reuse the same warm
+// instance between requests, so it's backed by a DB row (see FplCache in
+// schema.prisma) that survives across every invocation: a cache hit there
+// costs one fast Neon round-trip instead of FPL's multi-second response.
 const memoryCache = new Map<string, CacheEntry<unknown>>();
 
 async function fetchJson<T>(url: string, revalidateSeconds: number): Promise<T> {
   const cached = memoryCache.get(url) as CacheEntry<T> | undefined;
   if (cached && cached.expiresAt > Date.now()) {
     return cached.data;
+  }
+
+  const dbCached = await prisma.fplCache.findUnique({ where: { key: url } }).catch(() => null);
+  if (dbCached && dbCached.expiresAt > new Date()) {
+    const data = JSON.parse(dbCached.data) as T;
+    memoryCache.set(url, { data, expiresAt: dbCached.expiresAt.getTime() });
+    return data;
   }
 
   const resp = await fetch(url, {
@@ -118,7 +129,18 @@ async function fetchJson<T>(url: string, revalidateSeconds: number): Promise<T> 
     throw new Error(`FPL API request failed (${resp.status}): ${url}`);
   }
   const data = (await resp.json()) as T;
-  memoryCache.set(url, { data, expiresAt: Date.now() + revalidateSeconds * 1000 });
+  const expiresAt = new Date(Date.now() + revalidateSeconds * 1000);
+  memoryCache.set(url, { data, expiresAt: expiresAt.getTime() });
+
+  const serialized = JSON.stringify(data);
+  await prisma.fplCache
+    .upsert({
+      where: { key: url },
+      create: { key: url, data: serialized, expiresAt },
+      update: { data: serialized, expiresAt },
+    })
+    .catch(() => {});
+
   return data;
 }
 
