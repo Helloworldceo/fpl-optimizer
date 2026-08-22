@@ -86,6 +86,12 @@ interface Fixture {
   team_a_score: number | null;
   kickoff_time: string | null;
   finished: boolean;
+  // FPL flips this at full-time; `finished` itself lags behind by up to an
+  // hour or more while bonus points get officially confirmed. The scoreline
+  // itself doesn't change once this is true, so it's the right signal for
+  // "is the result final" here — bonus points don't affect predicted
+  // scorelines or this app's scoring.
+  finished_provisional: boolean;
 }
 
 interface EventLiveElement {
@@ -378,7 +384,7 @@ export async function fetchFixturesForGameweek(eventId: number): Promise<Fixture
           fixtureId: f.id,
           eventId,
           kickoffTime: f.kickoff_time,
-          finished: f.finished,
+          finished: f.finished || f.finished_provisional,
           homeTeam: { teamId: home.id, teamCode: home.code, name: home.name, shortName: home.short_name },
           awayTeam: { teamId: away.id, teamCode: away.code, name: away.name, shortName: away.short_name },
           homeScore: f.team_h_score,
